@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer</title>
+    <style>
+        @font-face {
+            font-family: 'Myriad Pro';
+            src: url('MYRIADPRO-REGULAR.OTF') format('opentype');
+        }
+
+        @font-face {
+            font-family: 'LHF_Mono';
+            src: url('LHF_Mono.otf') format('opentype'), url('LHF Mono.otf') format('opentype');
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-weight: bold !important;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        /* KHU VỰC CHỨA CÁC Ô CỬA LỚN */
+        .doors-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 1920px;
+            gap: 30px;
+        }
+
+        /* KHUNG CHỨA CỬA LỚN (MAX-WIDTH 480PX) */
+        .door-wrapper {
+            flex: 1;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* TỶ LỆ CỦA Ô CỬA (4:2.6) */
+        .door-frame {
+            width: 100%;
+            aspect-ratio: 4 / 2.6;
+            position: relative;
+            border: none;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        /* LỚP PHỦ CHO Ô CỬA KHÔNG SỬ DỤNG (ĐÈ UNUSEDOOR.PNG) */
+        .unused-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('unusedoor.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            z-index: 10;
+            display: none;
+            pointer-events: auto;
+        }
+
+        .unused-overlay.active {
+            display: block;
+        }
+
+        /* LỚP NỀN ĐÁY (MẶC ĐỊNH LÀ INDOOR.PNG) */
+        .bottom-bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('indoor.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            z-index: 1;
+            transition: background-image 0.2s ease;
+        }
+
+        /* ĐỔI SANG DROPDOOR.PNG KHI SẬP */
+        .bottom-bg-layer.collapsed-bg {
+            background-image: url('dropdoor.png') !important;
+        }
+
+        /* TEXT ĐÁP ÁN TRÊN NỀN INDOOR.PNG */
+        .answer-text-inside {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            color: #ffffff;
+            font-family: 'Myriad Pro', 'MyriadPro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            text-shadow: 0 3px 6px rgba(0, 0, 0, 1), 0 0 15px rgba(0, 0, 0, 0.8);
+            z-index: 2;
+            opacity: 0;
+            transform: scale(0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .answer-text-inside.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .answer-text-inside.hide-on-drop {
+            opacity: 0 !important;
+            transform: scale(0.3) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        /* CHỮ BÁO TIỀN RƠI CĂN GIỮA ĐỒNG ĐỀU */
+        .fall-status-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ff3333;
+            font-size: 26px;
+            font-weight: 900;
+            text-align: center;
+            text-transform: uppercase;
+            line-height: 1.3;
+            z-index: 2;
+            text-shadow: 0 2px 4px #000, 0 0 10px #000, 0 0 20px #000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            font-family: 'LHF_Mono', 'LHF Mono', monospace;
+        }
+
+        .fall-status-text.active {
+            opacity: 1;
+        }
+
+        /* LỚP BỀ MẶT CỬA DOOR.PNG */
+        .door-surface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            display: flex;
+            transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        .door-wing {
+            width: 50%;
+            height: 100%;
+            background-size: 200% 100%;
+            background-position: left center;
+            background-image: url('door.png');
+            transition: background-image 0.2s ease;
+            background-repeat: no-repeat;
+        }
+
+        .door-wing.right {
+            background-position: right center;
+        }
+
+        /* Wipe mở cánh cửa */
+        .door-surface.wiped .door-wing.left {
+            transform: translateX(-100%);
+        }
+
+        .door-surface.wiped .door-wing.right {
+            transform: translateX(100%);
+        }
+
+        /* Khép cửa sập 1s */
+        .door-surface.closing {
+            transition: transform 1s ease-in-out !important;
+        }
+
+        .door-surface.closing .door-wing {
+            transform: translateX(0) !important;
+        }
+
+        /* Ẩn bề mặt khi sập hố */
+        .door-surface.dropped {
+            display: none;
+        }
+
+        /* Đổi ảnh moneydoor.png */
+        .bg-moneydoor {
+            background-image: url('moneydoor.png') !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="doors-container">
+        <div class="door-wrapper" id="ans-wrap-1">
+            <div class="door-frame">
+                <div class="unused-overlay" id="unused-1"></div>
+                <div class="bottom-bg-layer" id="bg-layer-1"></div>
+                <div class="answer-text-inside" id="inside-txt-1"></div>
+                <div class="fall-status-text" id="fall-txt-1"></div>
+                <div class="door-surface" id="surface-1">
+                    <div class="door-wing left" id="wing-l-1"></div>
+                    <div class="door-wing right" id="wing-r-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="door-wrapper" id="ans-wrap-2">
+            <div class="door-frame">
+                <div class="unused-overlay" id="unused-2"></div>
+                <div class="bottom-bg-layer" id="bg-layer-2"></div>
+                <div class="answer-text-inside" id="inside-txt-2"></div>
+                <div class="fall-status-text" id="fall-txt-2"></div>
+                <div class="door-surface" id="surface-2">
+                    <div class="door-wing left" id="wing-l-2"></div>
+                    <div class="door-wing right" id="wing-r-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="door-wrapper" id="ans-wrap-3">
+            <div class="door-frame">
+                <div class="unused-overlay" id="unused-3"></div>
+                <div class="bottom-bg-layer" id="bg-layer-3"></div>
+                <div class="answer-text-inside" id="inside-txt-3"></div>
+                <div class="fall-status-text" id="fall-txt-3"></div>
+                <div class="door-surface" id="surface-3">
+                    <div class="door-wing left" id="wing-l-3"></div>
+                    <div class="door-wing right" id="wing-r-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="door-wrapper" id="ans-wrap-4">
+            <div class="door-frame">
+                <div class="unused-overlay" id="unused-4"></div>
+                <div class="bottom-bg-layer" id="bg-layer-4"></div>
+                <div class="answer-text-inside" id="inside-txt-4"></div>
+                <div class="fall-status-text" id="fall-txt-4"></div>
+                <div class="door-surface" id="surface-4">
+                    <div class="door-wing left" id="wing-l-4"></div>
+                    <div class="door-wing right" id="wing-r-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG TỪ NETWORK_SYNC.JS -->
+    <script>
+        (function () {
+            class GameSyncChannel {
+                constructor(channelName) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const customRoom = urlParams.get('room') || urlParams.get('channel');
+
+                    this.baseChannelName = channelName || 'gameshow_money_drop';
+                    this.topicName = customRoom ? `${this.baseChannelName}_${customRoom}` : `${this.baseChannelName}_main_channel_v2`;
+
+                    this.localChannel = new BroadcastChannel(this.baseChannelName);
+                    this.onmessageHandler = null;
+                    this.instanceId = 'client_' + Math.random().toString(36).substring(2, 9);
+                    this.mqttClient = null;
+                    this.isConnected = false;
+                    this.pendingQueue = [];
+
+                    this.localChannel.onmessage = (event) => {
+                        if (event.data && event.data._senderId !== this.instanceId) {
+                            if (typeof this.onmessageHandler === 'function') {
+                                this.onmessageHandler(event);
+                            }
+                        }
+                    };
+
+                    this.initMqtt();
+                }
+
+                get onmessage() {
+                    return this.onmessageHandler;
+                }
+
+                set onmessage(handler) {
+                    this.onmessageHandler = handler;
+                }
+
+                initMqtt() {
+                    if (typeof window.mqtt !== 'undefined') {
+                        this.connectBrokers();
+                        return;
+                    }
+
+                    const cdns = [
+                        'https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js',
+                        'https://cdn.jsdelivr.net/npm/mqtt@5.3.4/dist/mqtt.min.js',
+                        'https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js'
+                    ];
+
+                    let idx = 0;
+                    const loadScript = () => {
+                        if (idx >= cdns.length) {
+                            return;
+                        }
+                        const s = document.createElement('script');
+                        s.src = cdns[idx++];
+                        s.onload = () => {
+                            this.connectBrokers();
+                        };
+                        s.onerror = () => loadScript();
+                        document.head.appendChild(s);
+                    };
+                    loadScript();
+                }
+
+                connectBrokers() {
+                    if (!window.mqtt) return;
+
+                    const brokers = [
+                        'wss://broker.emqx.io:8084/mqtt',
+                        'wss://broker.hivemq.com:8884/mqtt',
+                        'wss://test.mosquitto.org:8081/mqtt'
+                    ];
+
+                    let currentBrokerIdx = 0;
+
+                    const tryConnect = () => {
+                        if (currentBrokerIdx >= brokers.length) return;
+                        const brokerUrl = brokers[currentBrokerIdx];
+
+                        try {
+                            this.mqttClient = window.mqtt.connect(brokerUrl, {
+                                clientId: 'gs_' + this.instanceId,
+                                keepalive: 30,
+                                clean: true,
+                                reconnectPeriod: 4000,
+                                connectTimeout: 6000
+                            });
+
+                            this.mqttClient.on('connect', () => {
+                                this.isConnected = true;
+
+                                this.mqttClient.subscribe(this.topicName, { qos: 0 }, (err) => {
+                                    if (!err) {
+                                        this.flushQueue();
+                                        this.notifyConnectionStatus(true);
+                                        if (typeof this.onmessageHandler === 'function') {
+                                            this.onmessageHandler({ data: { action: 'mqtt_connected' } });
+                                        }
+                                    }
+                                });
+                            });
+
+                            this.mqttClient.on('message', (topic, message) => {
+                                try {
+                                    const payload = JSON.parse(message.toString());
+                                    if (payload && payload._senderId !== this.instanceId) {
+                                        if (typeof this.onmessageHandler === 'function') {
+                                            this.onmessageHandler({ data: payload });
+                                        }
+                                    }
+                                } catch (e) { }
+                            });
+
+                            this.mqttClient.on('error', (err) => {
+                                this.isConnected = false;
+                                this.notifyConnectionStatus(false);
+                                try { this.mqttClient.end(true); } catch (e) { }
+                                currentBrokerIdx++;
+                                setTimeout(tryConnect, 1000);
+                            });
+
+                        } catch (e) {
+                            currentBrokerIdx++;
+                            setTimeout(tryConnect, 1000);
+                        }
+                    };
+
+                    tryConnect();
+                }
+
+                flushQueue() {
+                    if (!this.mqttClient || !this.mqttClient.connected) return;
+                    while (this.pendingQueue.length > 0) {
+                        const msg = this.pendingQueue.shift();
+                        try {
+                            this.mqttClient.publish(this.topicName, JSON.stringify(msg), { qos: 0 });
+                        } catch (e) { }
+                    }
+                }
+
+                notifyConnectionStatus(online) {
+                    const statusEls = document.querySelectorAll('.network-status-badge');
+                    statusEls.forEach(el => {
+                        if (online) {
+                            el.style.color = '#00e676';
+                            el.innerText = '🟢 Trực tuyến (WebSockets Connected)';
+                        } else {
+                            el.style.color = '#ff5252';
+                            el.innerText = '🔴 Ngoại tuyến (Đang kết nối lại...)';
+                        }
+                    });
+                }
+
+                postMessage(msg) {
+                    if (!msg) return;
+                    const payload = Object.assign({}, msg, { _senderId: this.instanceId, _timestamp: Date.now() });
+
+                    try {
+                        this.localChannel.postMessage(payload);
+                    } catch (e) { }
+
+                    if (this.mqttClient && this.mqttClient.connected) {
+                        try {
+                            this.mqttClient.publish(this.topicName, JSON.stringify(payload), { qos: 0 });
+                        } catch (e) {
+                            this.pendingQueue.push(payload);
+                        }
+                    } else {
+                        this.pendingQueue.push(payload);
+                        if (this.pendingQueue.length > 50) this.pendingQueue.shift();
+                    }
+                }
+            }
+
+            window.GameSyncChannel = GameSyncChannel;
+        })();
+    </script>
+
+    <!-- NỘI DUNG TỪ ANSWER.JS -->
+    <script>
+        const channel = (typeof GameSyncChannel !== 'undefined') ? new GameSyncChannel('gameshow_money_drop') : new BroadcastChannel('gameshow_money_drop');
+        let currentBets = { b1: 0, b2: 0, b3: 0, b4: 0 };
+        let activeRound = 1;
+
+        function setUnusedStatus(doorId, isUnused) {
+            const overlay = document.getElementById(`unused-${doorId}`);
+            if (overlay) {
+                if (isUnused) overlay.classList.add('active');
+                else overlay.classList.remove('active');
+            }
+        }
+
+        channel.onmessage = function (event) {
+            const { action, data } = event.data;
+
+            switch (action) {
+                case 'sync_bets_to_mc':
+                    currentBets.b1 = data.b1 || 0;
+                    currentBets.b2 = data.b2 || 0;
+                    currentBets.b3 = data.b3 || 0;
+                    currentBets.b4 = data.b4 || 0;
+
+                    for (let i = 1; i <= 4; i++) {
+                        const textEl = document.getElementById(`fall-txt-${i}`);
+                        if (textEl && textEl.classList.contains('active')) {
+                            const betVal = currentBets[`b${i}`] || 0;
+                            if (betVal > 0) {
+                                textEl.innerHTML = `${betVal.toLocaleString('vi-VN')} $A <br> ĐÃ RƠI`;
+                            } else {
+                                textEl.innerHTML = `ĐÃ RƠI`;
+                            }
+                        }
+                    }
+                    break;
+
+                case 'update_single_answer':
+                    let targetDoorId = data.id;
+
+                    if (activeRound === 8) {
+                        if (data.id === 1) targetDoorId = 2;
+                        else if (data.id === 2) targetDoorId = 3;
+                        else targetDoorId = null;
+                    }
+
+                    if (targetDoorId) {
+                        const insideTxt = document.getElementById(`inside-txt-${targetDoorId}`);
+                        if (insideTxt) {
+                            insideTxt.innerText = data.text;
+                            insideTxt.classList.remove('hide-on-drop');
+                            insideTxt.classList.add('show');
+                        }
+
+                        const surfaceEl = document.getElementById(`surface-${targetDoorId}`);
+                        if (surfaceEl) {
+                            surfaceEl.classList.add('wiped');
+                        }
+                    }
+                    break;
+
+                case 'timer_control':
+                    break;
+
+                case 'change_round':
+                    activeRound = parseInt(data.round);
+
+                    for (let i = 1; i <= 4; i++) {
+                        setUnusedStatus(i, false);
+                    }
+
+                    if (activeRound >= 5 && activeRound <= 7) {
+                        setUnusedStatus(4, true);
+                    } else if (activeRound === 8) {
+                        setUnusedStatus(1, true);
+                        setUnusedStatus(4, true);
+                    }
+                    break;
+
+                case 'open_door':
+                    let doorId = data.doorId;
+                    if (activeRound === 8) {
+                        if (data.doorId === 1) doorId = 2;
+                        else if (data.doorId === 2) doorId = 3;
+                        else doorId = null;
+                    }
+                    if (!doorId) break;
+
+                    const surface = document.getElementById(`surface-${doorId}`);
+                    const fallTxt = document.getElementById(`fall-txt-${doorId}`);
+                    const bgLayer = document.getElementById(`bg-layer-${doorId}`);
+                    const insideText = document.getElementById(`inside-txt-${doorId}`);
+
+                    if (insideText) {
+                        insideText.classList.remove('show');
+                        insideText.classList.add('hide-on-drop');
+                    }
+
+                    if (surface) {
+                        surface.classList.add('closing');
+                        surface.classList.remove('wiped');
+
+                        setTimeout(() => {
+                            surface.classList.remove('closing');
+                            surface.classList.add('dropped');
+                            if (bgLayer) bgLayer.classList.add('collapsed-bg');
+
+                            if (fallTxt) {
+                                const betVal = currentBets[`b${data.doorId}`] || 0;
+                                if (betVal > 0) {
+                                    fallTxt.innerHTML = `${betVal.toLocaleString('vi-VN')} $A <br> ĐÃ RƠI`;
+                                } else {
+                                    fallTxt.innerHTML = `ĐÃ RƠI`;
+                                }
+                                fallTxt.classList.add('active');
+                            }
+                        }, 1000);
+                    }
+                    break;
+
+                case 'reset_round':
+                    currentBets = { b1: 0, b2: 0, b3: 0, b4: 0 };
+                    for (let i = 1; i <= 4; i++) {
+                        const wingL = document.getElementById(`wing-l-${i}`);
+                        if (wingL) wingL.classList.remove('bg-moneydoor');
+                        const wingR = document.getElementById(`wing-r-${i}`);
+                        if (wingR) wingR.classList.remove('bg-moneydoor');
+
+                        const surfaceReset = document.getElementById(`surface-${i}`);
+                        if (surfaceReset) surfaceReset.className = "door-surface";
+
+                        const bgLyr = document.getElementById(`bg-layer-${i}`);
+                        if (bgLyr) bgLyr.classList.remove('collapsed-bg');
+
+                        const insideReset = document.getElementById(`inside-txt-${i}`);
+                        if (insideReset) {
+                            insideReset.className = "answer-text-inside";
+                            insideReset.innerText = "";
+                        }
+
+                        const fallT = document.getElementById(`fall-txt-${i}`);
+                        if (fallT) {
+                            fallT.classList.remove('active');
+                            fallT.innerHTML = "";
+                        }
+
+                        setUnusedStatus(i, false);
+                    }
+                    break;
+            }
+        };
+    </script>
+</body>
+
+</html>

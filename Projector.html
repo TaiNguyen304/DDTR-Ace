@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Projector</title>
+    <style>
+        @font-face {
+            font-family: 'LHF_Mono';
+            src: url('LHF_Mono.otf') format('opentype'), url('LHF Mono.otf') format('opentype');
+        }
+
+        * { font-weight: bold !important; box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Myriad Pro', Arial, sans-serif; }
+        .projector-container { 
+            width: 1920px; height: 1080px; position: relative; margin: auto;
+            background-color: #000; overflow: hidden;
+        }
+        .bg-main { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .bg-outline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 90; pointer-events: none; }
+
+        :root {
+            --q-center-top: 500px;
+            --q-moved-top: 380px; /* Câu hỏi dịch lên cao hơn một chút để nhường chỗ */
+            --ans-container-top: 530px;
+            --clock-top: 570px;   /* ĐẨY Ô ĐỒNG HỒ LÊN VỊ TRÍ CAO HƠN ĐỂ NẰM NGUYÊN TRONG KHUNG */
+        }
+
+        .strap-wrapper { position: absolute; left: 50%; transform: translateX(-50%); z-index: 5; width: 1000px; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        .category-strap { width: 100%; height: auto; }
+        .strap-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 32px; font-weight: bold; pointer-events: none; font-family: 'Myriad Pro', sans-serif; }
+        .is-active { top: 50% !important; z-index: 20; transform: translate(-50%, -50%) scale(1.1); }
+        .zoom-out { transform: translate(-50%, -50%) scale(0) !important; opacity: 0; }
+
+        #central-box { 
+            position: absolute; top: var(--q-center-top); left: 50%; transform: translateX(-50%) scale(0); 
+            width: 1100px; max-height: 140px; z-index: 5; color: white; font-size: 40px; text-align: center; 
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; cursor: pointer; font-family: 'Myriad Pro', sans-serif; 
+            display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+            word-wrap: break-word; line-height: 1.25;
+        }
+        #central-box.show { transform: translateX(-50%) scale(1); opacity: 1; }
+        #central-box.move-up { top: var(--q-moved-top); }
+
+        #answers-container { position: absolute; top: var(--ans-container-top); left: 50%; transform: translateX(-50%) scale(0); width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 5; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; }
+        #answers-container.show { transform: translateX(-50%) scale(1); opacity: 1; }
+        
+        /* GIẢM CHIỀU CAO MẤY Ô ĐÁP ÁN XUỐNG MỘT CHÚT (Từ 150px xuống 110px) */
+        .ans-frame { width: 280px; height: 110px; position: relative; transition: all 0.5s ease; }
+        .ans-frame.dropped {
+            filter: brightness(0.2) grayscale(0.8);
+            opacity: 0.25;
+        }
+        .ans-img { width: 100%; height: 100%; object-fit: fill; }
+        .ans-text { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            color: white; font-size: 22px; font-weight: bold; width: 100%; text-align: center; 
+            display: flex; justify-content: center; align-items: center; padding: 0 10px; 
+            box-sizing: border-box; pointer-events: none; font-family: 'Myriad Pro', sans-serif;
+            max-height: 100%; overflow: hidden; line-height: 1.2;
+        }
+
+        /* --- CLOCK STYLES --- */
+        #clock-container {
+            position: absolute; top: var(--clock-top); left: 50%; transform: translateX(-50%) scale(0.75);
+            width: 300px; height: 100px; z-index: 5; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0;
+        }
+        #clock-container.show { transform: translateX(-50%) scale(0.75); opacity: 1; }
+        #clock-bg { width: 100%; height: 100%; }
+        #clock-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 40px; font-weight: bold; font-family: 'LHF_Mono', 'LHF Mono', monospace; }
+    </style>
+</head>
+<body>
+
+    <div class="projector-container" onclick="unlockAudio()">
+        <img src="mainscreen.png" class="bg-main">
+        <img src="outlinescreen.png" class="bg-outline">
+
+        <div id="audio-unlock-banner" style="position: absolute; top: 10px; right: 10px; z-index: 100; background: rgba(230, 126, 34, 0.9); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; display: none;">
+            🔊 Nhấp vào đây để BẬT ÂM THANH
+        </div>
+
+        <div id="central-box" onclick="showAnswers()">CHỜ MC CHỌN CHỦ ĐỀ...</div>
+
+        <div id="answers-container">
+            <div class="ans-frame" id="proj-frame-1"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-1">---</div></div>
+            <div class="ans-frame" id="proj-frame-2"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-2">---</div></div>
+            <div class="ans-frame" id="proj-frame-3"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-3">---</div></div>
+            <div class="ans-frame" id="proj-frame-4"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-4">---</div></div>
+        </div>
+
+        <div id="clock-container">
+            <img src="clock1.png" id="clock-bg">
+            <div id="clock-time">1:00</div>
+        </div>
+
+        <div class="strap-wrapper" style="top: 400px; display: none;" id="item-a" data-state="0" onclick="processClick(this)">
+            <img src="categorystrap.png" class="category-strap"><div class="strap-text">CHỦ ĐỀ A</div>
+        </div>
+        <div class="strap-wrapper" style="top: 550px; display: none;" id="item-b" data-state="0" onclick="processClick(this)">
+            <img src="categorystrap.png" class="category-strap"><div class="strap-text">CHỦ ĐỀ B</div>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG TỪ NETWORK_SYNC.JS ĐƯỢC NHÚNG TRỰC TIẾP -->
+    <script>
+    (function () {
+        class GameSyncChannel {
+            constructor(channelName) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const customRoom = urlParams.get('room') || urlParams.get('channel');
+                
+                this.baseChannelName = channelName || 'gameshow_money_drop';
+                this.topicName = customRoom ? `${this.baseChannelName}_${customRoom}` : `${this.baseChannelName}_main_channel_v2`;
+                
+                this.localChannel = new BroadcastChannel(this.baseChannelName);
+                this.onmessageHandler = null;
+                this.instanceId = 'client_' + Math.random().toString(36).substring(2, 9);
+                this.mqttClient = null;
+                this.isConnected = false;
+                this.pendingQueue = [];
+
+                this.localChannel.onmessage = (event) => {
+                    if (event.data && event.data._senderId !== this.instanceId) {
+                        if (typeof this.onmessageHandler === 'function') {
+                            this.onmessageHandler(event);
+                        }
+                    }
+                };
+
+                this.initMqtt();
+            }
+
+            get onmessage() {
+                return this.onmessageHandler;
+            }
+
+            set onmessage(handler) {
+                this.onmessageHandler = handler;
+            }
+
+            initMqtt() {
+                if (typeof window.mqtt !== 'undefined') {
+                    this.connectBrokers();
+                    return;
+                }
+
+                const cdns = [
+                    'https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js',
+                    'https://cdn.jsdelivr.net/npm/mqtt@5.3.4/dist/mqtt.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js'
+                ];
+
+                let idx = 0;
+                const loadScript = () => {
+                    if (idx >= cdns.length) {
+                        return;
+                    }
+                    const s = document.createElement('script');
+                    s.src = cdns[idx++];
+                    s.onload = () => {
+                        this.connectBrokers();
+                    };
+                    s.onerror = () => loadScript();
+                    document.head.appendChild(s);
+                };
+                loadScript();
+            }
+
+            connectBrokers() {
+                if (!window.mqtt) return;
+
+                const brokers = [
+                    'wss://broker.emqx.io:8084/mqtt',
+                    'wss://broker.hivemq.com:8884/mqtt',
+                    'wss://test.mosquitto.org:8081/mqtt'
+                ];
+
+                let currentBrokerIdx = 0;
+
+                const tryConnect = () => {
+                    if (currentBrokerIdx >= brokers.length) return;
+                    const brokerUrl = brokers[currentBrokerIdx];
+
+                    try {
+                        this.mqttClient = window.mqtt.connect(brokerUrl, {
+                            clientId: 'gs_' + this.instanceId,
+                            keepalive: 30,
+                            clean: true,
+                            reconnectPeriod: 4000,
+                            connectTimeout: 6000
+                        });
+
+                        this.mqttClient.on('connect', () => {
+                            this.isConnected = true;
+                            
+                            this.mqttClient.subscribe(this.topicName, { qos: 0 }, (err) => {
+                                if (!err) {
+                                    this.flushQueue();
+                                    this.notifyConnectionStatus(true);
+                                    if (typeof this.onmessageHandler === 'function') {
+                                        this.onmessageHandler({ data: { action: 'mqtt_connected' } });
+                                    }
+                                }
+                            });
+                        });
+
+                        this.mqttClient.on('message', (topic, message) => {
+                            try {
+                                const payload = JSON.parse(message.toString());
+                                if (payload && payload._senderId !== this.instanceId) {
+                                    if (typeof this.onmessageHandler === 'function') {
+                                        this.onmessageHandler({ data: payload });
+                                    }
+                                }
+                            } catch (e) {}
+                        });
+
+                        this.mqttClient.on('error', (err) => {
+                            this.isConnected = false;
+                            this.notifyConnectionStatus(false);
+                            try { this.mqttClient.end(true); } catch(e){}
+                            currentBrokerIdx++;
+                            setTimeout(tryConnect, 1000);
+                        });
+
+                    } catch (e) {
+                        currentBrokerIdx++;
+                        setTimeout(tryConnect, 1000);
+                    }
+                };
+
+                tryConnect();
+            }
+
+            flushQueue() {
+                if (!this.mqttClient || !this.mqttClient.connected) return;
+                while (this.pendingQueue.length > 0) {
+                    const msg = this.pendingQueue.shift();
+                    try {
+                        this.mqttClient.publish(this.topicName, JSON.stringify(msg), { qos: 0 });
+                    } catch (e) {}
+                }
+            }
+
+            notifyConnectionStatus(online) {
+                const statusEls = document.querySelectorAll('.network-status-badge');
+                statusEls.forEach(el => {
+                    if (online) {
+                        el.style.color = '#00e676';
+                        el.innerText = '🟢 Trực tuyến (WebSockets Connected)';
+                    } else {
+                        el.style.color = '#ff5252';
+                        el.innerText = '🔴 Ngoại tuyến (Đang kết nối lại...)';
+                    }
+                });
+            }
+
+            postMessage(msg) {
+                if (!msg) return;
+                const payload = Object.assign({}, msg, { _senderId: this.instanceId, _timestamp: Date.now() });
+
+                try {
+                    this.localChannel.postMessage(payload);
+                } catch (e) {}
+
+                if (this.mqttClient && this.mqttClient.connected) {
+                    try {
+                        this.mqttClient.publish(this.topicName, JSON.stringify(payload), { qos: 0 });
+                    } catch (e) {
+                        this.pendingQueue.push(payload);
+                    }
+                } else {
+                    this.pendingQueue.push(payload);
+                    if (this.pendingQueue.length > 50) this.pendingQueue.shift();
+                }
+            }
+        }
+
+        window.GameSyncChannel = GameSyncChannel;
+    })();
+    </script>
+
+    <!-- LOGIC CHÍNH CỦA PROJECTOR -->
+    <script>
+        const channel = (typeof GameSyncChannel !== 'undefined') ? new GameSyncChannel('gameshow_money_drop') : new BroadcastChannel('gameshow_money_drop');
+        const timerAudio = new Audio("SFX/drop_timer.mp3");
+        timerAudio.loop = false;
+
+        let activeSfxAudio = null;
+        let clickCount = 0; 
+        let isAudioUnlocked = false;
+
+        function unlockAudio() {
+            if (!isAudioUnlocked) {
+                isAudioUnlocked = true;
+                const banner = document.getElementById('audio-unlock-banner');
+                if (banner) banner.style.display = 'none';
+            }
+        }
+
+        function playSfxOnProjector(filePath, loop = false, stopPrevious = true) {
+            if (stopPrevious && activeSfxAudio) {
+                activeSfxAudio.pause();
+                activeSfxAudio.currentTime = 0;
+            }
+            const audio = new Audio(filePath);
+            audio.loop = loop;
+            if (stopPrevious) {
+                activeSfxAudio = audio;
+            }
+            audio.play().then(() => {
+                unlockAudio();
+            }).catch(e => {
+                const banner = document.getElementById('audio-unlock-banner');
+                if (banner) banner.style.display = 'block';
+            });
+        }
+
+        let currentRound = 1;
+
+        function adjustQuestionFontSize(text) {
+            const box = document.getElementById("central-box");
+            box.innerText = text;
+
+            // Tự động điều chỉnh font chữ để tối đa 3 dòng và không bị tràn/đè lên đáp án
+            let fontSize = 40;
+            box.style.fontSize = fontSize + "px";
+
+            // Đo chiều cao tối đa của 3 dòng (khoảng 3 * fontSize * 1.25)
+            // Giảm cỡ chữ nếu chiều cao thực tế vượt quá 3 dòng hoặc vượt quá chiều cao tối đa
+            while ((box.scrollHeight > box.clientHeight || box.offsetHeight > 140) && fontSize > 20) {
+                fontSize -= 2;
+                box.style.fontSize = fontSize + "px";
+            }
+        }
+
+        function applyAnswerVisibility() {
+            for (let i = 1; i <= 4; i++) {
+                const frame = document.getElementById(`proj-frame-${i}`);
+                const textEl = document.getElementById(`proj-ans-${i}`);
+                if (!frame) continue;
+
+                let shouldShow = true;
+
+                if (currentRound >= 5 && currentRound <= 7) {
+                    if (i === 4) shouldShow = false;
+                } else if (currentRound === 8) {
+                    if (i === 1 || i === 4) shouldShow = false;
+                }
+
+                if (textEl && textEl.dataset.hiddenByContent === "true") {
+                    shouldShow = false;
+                }
+
+                frame.style.display = shouldShow ? "block" : "none";
+            }
+        }
+
+        function stopAllSfxOnProjector() {
+            if (activeSfxAudio) {
+                activeSfxAudio.pause();
+                activeSfxAudio.currentTime = 0;
+                activeSfxAudio = null;
+            }
+            timerAudio.pause();
+            timerAudio.currentTime = 0;
+        }
+
+        function resetBigscreen() {
+            stopAllSfxOnProjector();
+
+            const bgMain = document.querySelector('.bg-main');
+            if (bgMain) {
+                bgMain.src = "mainscreen.png";
+            }
+
+            document.getElementById("item-a").style.display = "none";
+            document.getElementById("item-b").style.display = "none";
+
+            document.getElementById("item-a").classList.remove("is-active", "zoom-out");
+            document.getElementById("item-b").classList.remove("is-active", "zoom-out");
+
+            document.getElementById("item-a").setAttribute("data-state", "0");
+            document.getElementById("item-b").setAttribute("data-state", "0");
+
+            document.getElementById("central-box").classList.remove("show", "move-up");
+            document.getElementById("answers-container").classList.remove("show");
+            document.getElementById("clock-container").classList.remove("show");
+
+            currentRound = 1;
+            adjustQuestionFontSize("CHỜ MC CHỌN CHỦ ĐỀ...");
+            for (let i = 1; i <= 4; i++) {
+                const ansEl = document.getElementById(`proj-ans-${i}`);
+                if (ansEl) {
+                    ansEl.innerText = "---";
+                    delete ansEl.dataset.hiddenByContent;
+                }
+                const frameEl = document.getElementById(`proj-frame-${i}`);
+                if (frameEl) {
+                    frameEl.classList.remove("dropped");
+                }
+            }
+            applyAnswerVisibility();
+
+            clickCount = 0;
+        }
+
+        channel.onmessage = function(event) {
+            const { action, data } = event.data;
+
+            switch(action) {
+                case "play_sfx":
+                    if (data && data.file) {
+                        playSfxOnProjector(data.file, !!data.loop, data.stopPrevious !== false);
+                    }
+                    break;
+
+                case "stop_sfx":
+                    stopAllSfxOnProjector();
+                    break;
+
+                case "reset_round":
+                    resetBigscreen();
+                    break;
+
+                case "open_door":
+                    if (data && data.doorId) {
+                        let frameId = data.doorId;
+                        if (currentRound === 8) {
+                            if (data.doorId === 1) frameId = 2;
+                            else if (data.doorId === 2) frameId = 3;
+                            else frameId = null;
+                        }
+                        if (frameId) {
+                            const frameEl = document.getElementById(`proj-frame-${frameId}`);
+                            if (frameEl) {
+                                frameEl.classList.add("dropped");
+                            }
+                        }
+                    }
+                    break;
+
+                case "change_round":
+                    if (data && data.round) {
+                        currentRound = parseInt(data.round) || 1;
+                        applyAnswerVisibility();
+                    }
+                    break;
+
+                case "show_topics":
+                    const bgMain = document.querySelector('.bg-main');
+                    if (bgMain) {
+                        bgMain.src = "main1.png";
+                    }
+
+                    document.querySelector("#item-a .strap-text").innerText = data.topicA || "CHỦ ĐỀ A";
+                    document.querySelector("#item-b .strap-text").innerText = data.topicB || "CHỦ ĐỀ B";
+                    
+                    document.getElementById("item-a").style.display = "block";
+                    document.getElementById("item-b").style.display = "block";
+                    document.getElementById("item-a").classList.remove("is-active", "zoom-out");
+                    document.getElementById("item-b").classList.remove("is-active", "zoom-out");
+                    document.getElementById("item-a").setAttribute("data-state", "0");
+                    document.getElementById("item-b").setAttribute("data-state", "0");
+                    break;
+
+                case "lock_topic":
+                    const elA = document.getElementById("item-a");
+                    const elB = document.getElementById("item-b");
+                    if (data.type === "A") {
+                        elB.classList.add("zoom-out");
+                        elA.classList.add("is-active");
+                        elA.setAttribute("data-state", "1");
+                    } else {
+                        elA.classList.add("zoom-out");
+                        elB.classList.add("is-active");
+                        elB.setAttribute("data-state", "1");
+                    }
+                    break;
+
+                case "update_content":
+                    if (data.type === 'question') {
+                        document.getElementById("item-a").classList.add("zoom-out");
+                        document.getElementById("item-b").classList.add("zoom-out");
+                        
+                        adjustQuestionFontSize(data.data.question);
+                        setTimeout(() => {
+                            document.getElementById("central-box").classList.add("show");
+                        }, 600);
+                    }
+                    break;
+
+                case "update_single_answer":
+                    let targetId = data.id;
+                    if (currentRound === 8) {
+                        if (data.id === 1) targetId = 2;
+                        else if (data.id === 2) targetId = 3;
+                        else targetId = null;
+                    }
+                    if (targetId) {
+                        const ansEl = document.getElementById(`proj-ans-${targetId}`);
+                        if (ansEl) {
+                            ansEl.innerText = data.text;
+                            if (!data.text || data.text.trim() === "" || data.text === "---") {
+                                ansEl.dataset.hiddenByContent = "true";
+                            } else {
+                                ansEl.dataset.hiddenByContent = "false";
+                            }
+                        }
+                    }
+                    applyAnswerVisibility();
+                    break;
+
+                case "show_all_q_and_a":
+                    document.getElementById("item-a").classList.add("zoom-out");
+                    document.getElementById("item-b").classList.add("zoom-out");
+                    
+                    const box = document.getElementById('central-box');
+                    const ans = document.getElementById('answers-container');
+                    
+                    box.classList.add('move-up');
+                    box.classList.add('show');
+                    ans.classList.add('show');
+                    break;
+
+                case "timer_tick":
+                    let m = Math.floor(data.time / 60);
+                    let s = data.time % 60;
+                    document.getElementById("clock-time").innerText = m + ":" + s.toString().padStart(2, "0");
+                    break;
+
+                case "timer_control":
+                    if (data.status === "start") {
+                        stopAllSfxOnProjector();
+                        timerAudio.currentTime = 0;
+                        timerAudio.play().catch(e => {});
+                        document.getElementById("clock-container").classList.add("show");
+                    }
+                    if (data.status === "stop") {
+                        timerAudio.pause();
+                        timerAudio.currentTime = 0;
+                    }
+                    break;
+            }
+        };
+
+        function processClick(el) {
+            let state = parseInt(el.getAttribute('data-state'));
+            if (state === 0) {
+                document.querySelectorAll('.strap-wrapper').forEach(item => { if (item !== el) item.classList.add('zoom-out'); });
+                el.classList.add('is-active');
+                el.setAttribute('data-state', '1');
+            } else if (state === 1) {
+                el.classList.add('zoom-out');
+                setTimeout(() => { document.getElementById('central-box').classList.add('show'); }, 600);
+                el.setAttribute('data-state', '2');
+            }
+        }
+
+        function showAnswers() {
+            const box = document.getElementById('central-box');
+            const ans = document.getElementById('answers-container');
+            const clock = document.getElementById('clock-container');
+
+            if (clickCount === 0) {
+                box.classList.remove('show');
+                setTimeout(() => {
+                    box.classList.add('move-up');
+                    box.classList.add('show');
+                    ans.classList.add('show');
+                    clickCount++;
+                }, 600);
+            } else {
+                clock.classList.add('show');
+            }
+        }
+
+        resetBigscreen();
+    </script>
+</body>
+</html>

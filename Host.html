@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host</title>
+    <style>
+        @font-face {
+            font-family: 'LHF_Mono';
+            src: url('LHF_Mono.otf') format('opentype'), url('LHF Mono.otf') format('opentype');
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-weight: bold !important; }
+        body { font-family: Arial, sans-serif; background-color: #050505; color: #fff; overflow: hidden; padding: 20px; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; }
+        .topic-container { display: flex; justify-content: center; gap: 40px; margin-top: 5px; }
+        .topic-box { background: linear-gradient(145deg, #1e1e1e, #111); padding: 12px 35px; border-radius: 8px; border: 2px solid #444; font-size: 22px; font-weight: bold; min-width: 230px; text-align: center; transition: all 0.3s; }
+        .topic-box.active { border-color: #ffcc00; box-shadow: 0 0 15px rgba(255, 204, 0, 0.4); }
+        .question-container { background: linear-gradient(180deg, #222, #111); border: 2px solid #ffcc00; border-radius: 10px; padding: 15px 30px; margin: 10px auto; width: 90%; max-width: 1100px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .question-round-title { font-size: 14px; color: #ffcc00; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+        .question-text { font-size: 24px; font-weight: bold; color: #ffffff; line-height: 1.4; }
+        .timer-container { text-align: center; margin-bottom: 10px; }
+        .timer { font-size: 42px; font-weight: bold; color: #ff3333; font-family: 'LHF_Mono', 'LHF Mono', monospace; background: #111; padding: 3px 20px; border-radius: 6px; display: inline-block; border: 1px solid #333; }
+        .doors-container { display: flex; justify-content: center; gap: 20px; margin-bottom: 15px; }
+        .door-wrapper { width: 260px; display: flex; flex-direction: column; gap: 10px; transition: all 0.3s; }
+        .answer-label { background-color: #222; border: 2px solid #555; border-radius: 6px; padding: 12px; text-align: center; font-size: 18px; font-weight: bold; min-height: 50px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s, border-color 0.3s; }
+        .answer-label.host-win { background-color: #27ae60 !important; border-color: #2ecc71 !important; color: white; }
+        .answer-label.host-lose { background-color: #c0392b !important; border-color: #e74c3c !important; color: white; }
+        .pit-frame { height: 320px; border: 3px solid #ffcc00; border-radius: 8px; background-color: #000; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+        .door-image { width: 100%; height: 100%; background-image: url('door.png'); background-size: 100% 100%; transition: all 0.5s ease-in-out; position: absolute; top: 0; left: 0; z-index: 2; }
+        .door-image.dropped { transform: translateY(100%); opacity: 0; }
+        .pit-bg { position: absolute; top:0; left:0; width:100%; height:100%; background-image: url('dropdoor.png'); background-size: 100% 100%; z-index: 1; }
+        .bet-display { position: absolute; bottom: 15px; width: 100%; text-align: center; font-size: 20px; font-weight: bold; color: #ffcc00; text-shadow: 2px 2px 4px #000; z-index: 3; }
+        .dropped-money-text { position: absolute; top: 40%; width: 100%; text-align: center; font-size: 22px; font-weight: bold; color: #ff3333; z-index: 3; display: none; text-shadow: 2px 2px 5px #000; }
+        .tech-box { position: fixed; bottom: 15px; left: 15px; width: 320px; max-height: 120px; background: rgba(20, 20, 20, 0.95); border: 1px dashed #ffcc00; border-radius: 6px; padding: 10px; z-index: 10; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .tech-box-title { color: #ffcc00; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid #333; padding-bottom: 2px;}
+        .tech-msg-content { color: #00ffcc; font-style: italic; word-wrap: break-word; }
+        .explain-container { background-color: #111; border: 1px solid #333; padding: 12px; border-radius: 6px; text-align: center; color: #aaa; min-height: 45px; font-size: 16px; margin-top: 5px; }
+        .explain-container span { color: #ffcc00; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="topic-container">
+        <div id="host-topic-A" class="topic-box">Chủ đề A</div>
+        <div id="host-topic-B" class="topic-box">Chủ đề B</div>
+    </div>
+
+    <div class="question-container">
+        <div class="question-round-title" id="host-round-title">CÂU HỎI 1</div>
+        <div class="question-text" id="host-question-text">Đang đợi phòng máy nạp câu hỏi...</div>
+    </div>
+
+    <div class="timer-container">
+        <div id="host-timer" class="timer">60</div>
+    </div>
+
+    <div class="doors-container">
+        <div class="door-wrapper" id="wrapper-1">
+            <div class="answer-label" id="label-ans-1">---</div>
+            <div class="pit-frame" id="pit-1">
+                <div class="pit-bg"></div>
+                <div class="door-image" id="img-door-1"></div>
+                <div class="bet-display" id="money-1">0 $A</div>
+                <div class="dropped-money-text" id="drop-text-1">0 $A đã rơi</div>
+            </div>
+        </div>
+        <div class="door-wrapper" id="wrapper-2">
+            <div class="answer-label" id="label-ans-2">---</div>
+            <div class="pit-frame" id="pit-2">
+                <div class="pit-bg"></div>
+                <div class="door-image" id="img-door-2"></div>
+                <div class="bet-display" id="money-2">0 $A</div>
+                <div class="dropped-money-text" id="drop-text-2">0 $A đã rơi</div>
+            </div>
+        </div>
+        <div class="door-wrapper" id="wrapper-3">
+            <div class="answer-label" id="label-ans-3">---</div>
+            <div class="pit-frame" id="pit-3">
+                <div class="pit-bg"></div>
+                <div class="door-image" id="img-door-3"></div>
+                <div class="bet-display" id="money-3">0 $A</div>
+                <div class="dropped-money-text" id="drop-text-3">0 $A đã rơi</div>
+            </div>
+        </div>
+        <div class="door-wrapper" id="wrapper-4">
+            <div class="answer-label" id="label-ans-4">---</div>
+            <div class="pit-frame" id="pit-4">
+                <div class="pit-bg"></div>
+                <div class="door-image" id="img-door-4"></div>
+                <div class="bet-display" id="money-4">0 $A</div>
+                <div class="dropped-money-text" id="drop-text-4">0 $A đã rơi</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="explain-container">
+        <div id="explain-box">Giải thích đáp án từ hệ thống: <span id="explain-text">Chưa có dữ liệu</span></div>
+    </div>
+
+    <div class="tech-box">
+        <div class="tech-box-title">💬 Tin nhắn từ phòng Máy Kỹ Thuật:</div>
+        <div class="tech-msg-content" id="tech-msg-display">Hệ thống đang sẵn sàng.</div>
+    </div>
+
+    <script>
+        /* network_sync.js - Cross-Device Realtime Network Synchronization for GitHub Pages & Web Hosting */
+        (function () {
+            class GameSyncChannel {
+                constructor(channelName) {
+                    // Read optional custom channel/room from URL query string, e.g. ?room=mygame
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const customRoom = urlParams.get('room') || urlParams.get('channel');
+                    
+                    this.baseChannelName = channelName || 'gameshow_money_drop';
+                    // All pages in the app MUST connect to the same topic to communicate!
+                    this.topicName = customRoom ? `${this.baseChannelName}_${customRoom}` : `${this.baseChannelName}_main_channel_v2`;
+                    
+                    this.localChannel = new BroadcastChannel(this.baseChannelName);
+                    this.onmessageHandler = null;
+                    this.instanceId = 'client_' + Math.random().toString(36).substring(2, 9);
+                    this.mqttClient = null;
+                    this.isConnected = false;
+                    this.pendingQueue = [];
+
+                    // 1. Listen to BroadcastChannel for local tabs on same device
+                    this.localChannel.onmessage = (event) => {
+                        if (event.data && event.data._senderId !== this.instanceId) {
+                            if (typeof this.onmessageHandler === 'function') {
+                                this.onmessageHandler(event);
+                            }
+                        }
+                    };
+
+                    // 2. Load MQTT Library for Cross-Device WebSockets
+                    this.initMqtt();
+                }
+
+                get onmessage() {
+                    return this.onmessageHandler;
+                }
+
+                set onmessage(handler) {
+                    this.onmessageHandler = handler;
+                }
+
+                initMqtt() {
+                    if (typeof window.mqtt !== 'undefined') {
+                        this.connectBrokers();
+                        return;
+                    }
+
+                    const cdns = [
+                        'https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js',
+                        'https://cdn.jsdelivr.net/npm/mqtt@5.3.4/dist/mqtt.min.js',
+                        'https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js'
+                    ];
+
+                    let idx = 0;
+                    const loadScript = () => {
+                        if (idx >= cdns.length) {
+                            console.warn('⚠️ MQTT CDN unavailable, using BroadcastChannel local only.');
+                            return;
+                        }
+                        const s = document.createElement('script');
+                        s.src = cdns[idx++];
+                        s.onload = () => {
+                            console.log('✅ MQTT Library loaded successfully.');
+                            this.connectBrokers();
+                        };
+                        s.onerror = () => loadScript();
+                        document.head.appendChild(s);
+                    };
+                    loadScript();
+                }
+
+                connectBrokers() {
+                    if (!window.mqtt) return;
+
+                    const brokers = [
+                        'wss://broker.emqx.io:8084/mqtt',
+                        'wss://broker.hivemq.com:8884/mqtt',
+                        'wss://test.mosquitto.org:8081/mqtt'
+                    ];
+
+                    let currentBrokerIdx = 0;
+
+                    const tryConnect = () => {
+                        if (currentBrokerIdx >= brokers.length) return;
+                        const brokerUrl = brokers[currentBrokerIdx];
+                        console.log(`🌐 Connecting to MQTT broker: ${brokerUrl} (Topic: ${this.topicName})`);
+
+                        try {
+                            this.mqttClient = window.mqtt.connect(brokerUrl, {
+                                clientId: 'gs_' + this.instanceId,
+                                keepalive: 30,
+                                clean: true,
+                                reconnectPeriod: 4000,
+                                connectTimeout: 6000
+                            });
+
+                            this.mqttClient.on('connect', () => {
+                                this.isConnected = true;
+                                console.log(`🟢 [MQTT ONLINE] Connected to ${brokerUrl} on topic: ${this.topicName}`);
+                                
+                                this.mqttClient.subscribe(this.topicName, { qos: 0 }, (err) => {
+                                    if (!err) {
+                                        this.flushQueue();
+                                        this.notifyConnectionStatus(true);
+                                        // Trigger initial handshake broadcast upon connection
+                                        if (typeof this.onmessageHandler === 'function') {
+                                            this.onmessageHandler({ data: { action: 'mqtt_connected' } });
+                                        }
+                                    }
+                                });
+                            });
+
+                            this.mqttClient.on('message', (topic, message) => {
+                                try {
+                                    const payload = JSON.parse(message.toString());
+                                    if (payload && payload._senderId !== this.instanceId) {
+                                        if (typeof this.onmessageHandler === 'function') {
+                                            this.onmessageHandler({ data: payload });
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('MQTT message parse error:', e);
+                                }
+                            });
+
+                            this.mqttClient.on('error', (err) => {
+                                console.warn(`⚠️ Broker error on ${brokerUrl}:`, err);
+                                this.isConnected = false;
+                                this.notifyConnectionStatus(false);
+                                try { this.mqttClient.end(true); } catch(e){}
+                                currentBrokerIdx++;
+                                setTimeout(tryConnect, 1000);
+                            });
+
+                        } catch (e) {
+                            console.warn(`⚠️ Broker init exception on ${brokerUrl}:`, e);
+                            currentBrokerIdx++;
+                            setTimeout(tryConnect, 1000);
+                        }
+                    };
+
+                    tryConnect();
+                }
+
+                flushQueue() {
+                    if (!this.mqttClient || !this.mqttClient.connected) return;
+                    while (this.pendingQueue.length > 0) {
+                        const msg = this.pendingQueue.shift();
+                        try {
+                            this.mqttClient.publish(this.topicName, JSON.stringify(msg), { qos: 0 });
+                        } catch (e) {}
+                    }
+                }
+
+                notifyConnectionStatus(online) {
+                    const statusEls = document.querySelectorAll('.network-status-badge');
+                    statusEls.forEach(el => {
+                        if (online) {
+                            el.style.color = '#00e676';
+                            el.innerText = '🟢 Trực tuyến (WebSockets Connected)';
+                        } else {
+                            el.style.color = '#ff5252';
+                            el.innerText = '🔴 Ngoại tuyến (Đang kết nối lại...)';
+                        }
+                    });
+                }
+
+                postMessage(msg) {
+                    if (!msg) return;
+                    const payload = Object.assign({}, msg, { _senderId: this.instanceId, _timestamp: Date.now() });
+
+                    // 1. Send via local BroadcastChannel (same browser tab/window)
+                    try {
+                        this.localChannel.postMessage(payload);
+                    } catch (e) {}
+
+                    // 2. Send via MQTT WebSocket (cross-device)
+                    if (this.mqttClient && this.mqttClient.connected) {
+                        try {
+                            this.mqttClient.publish(this.topicName, JSON.stringify(payload), { qos: 0 });
+                        } catch (e) {
+                            this.pendingQueue.push(payload);
+                        }
+                    } else {
+                        this.pendingQueue.push(payload);
+                        if (this.pendingQueue.length > 50) this.pendingQueue.shift();
+                    }
+                }
+            }
+
+            window.GameSyncChannel = GameSyncChannel;
+        })();
+    </script>
+    <script>
+        const channel = (typeof GameSyncChannel !== 'undefined') ? new GameSyncChannel('gameshow_money_drop') : new BroadcastChannel('gameshow_money_drop');
+        let currentBets = { b1: 0, b2: 0, b3: 0, b4: 0 };
+        let currentRound = 1;
+
+        channel.onmessage = function(event) {
+            const { action, data } = event.data;
+
+            if (action === 'show_topics') {
+                document.getElementById('host-topic-A').innerText = data.topicA || "Chủ đề A";
+                document.getElementById('host-topic-B').innerText = data.topicB || "Chủ đề B";
+                document.getElementById('host-topic-A').classList.remove('active');
+                document.getElementById('host-topic-B').classList.remove('active');
+            }
+            if (action === 'lock_topic') {
+                if (data.type === 'A') document.getElementById('host-topic-A').classList.add('active');
+                if (data.type === 'B') document.getElementById('host-topic-B').classList.add('active');
+            }
+            if (action === 'send_question_text_to_screens') {
+                document.getElementById('host-question-text').innerText = data.text;
+            }
+            if (action === 'update_content') {
+                if (data.type === 'question') {
+                    document.getElementById('host-question-text').innerText = data.data.question;
+                }
+            }
+            if (action === 'update_single_answer') {
+                let targetId = data.id;
+                if (currentRound === 8) {
+                    if (data.id === 1) targetId = 2;
+                    else if (data.id === 2) targetId = 3;
+                    else targetId = null;
+                }
+                if (targetId) {
+                    document.getElementById(`label-ans-${targetId}`).innerText = data.text;
+                }
+            }
+            if (action === 'timer_tick') {
+                document.getElementById('host-timer').innerText = data.time;
+            }
+            if (action === 'sync_bets_to_mc') {
+                currentBets.b1 = data.b1 || 0; currentBets.b2 = data.b2 || 0;
+                currentBets.b3 = data.b3 || 0; currentBets.b4 = data.b4 || 0;
+                for(let i = 1; i <= 4; i++) {
+                    document.getElementById(`money-${i}`).innerText = currentBets[`b${i}`].toLocaleString('vi-VN') + " $A";
+                }
+            }
+            if (action === 'open_door') {
+                let doorId = data.doorId;
+                if (currentRound === 8) {
+                    if (data.doorId === 1) doorId = 2;
+                    else if (data.doorId === 2) doorId = 3;
+                    else doorId = null;
+                }
+                if (doorId) {
+                    document.getElementById(`img-door-${doorId}`).classList.add('dropped');
+                    const txtDrop = document.getElementById(`drop-text-${doorId}`);
+                    const betVal = currentBets[`b${data.doorId}`] || 0;
+                    txtDrop.innerText = betVal.toLocaleString('vi-VN') + " $A đã rơi";
+                    txtDrop.style.display = 'block';
+
+                    const label = document.getElementById(`label-ans-${doorId}`);
+                    if (betVal > 0) {
+                        label.classList.add('host-win'); 
+                    } else {
+                        label.classList.add('host-lose'); 
+                    }
+                    document.getElementById('explain-text').style.display = 'inline';
+                }
+            }
+            if (action === 'change_round') {
+                resetAllHostVisuals();
+                currentRound = parseInt(data.round) || 1;
+                document.getElementById('host-round-title').innerText = `CÂU HỎI ${data.round}`;
+                
+                if (data.round >= 5 && data.round <= 7) {
+                    document.getElementById('wrapper-4').style.opacity = '0'; 
+                } else if (data.round === 8) {
+                    document.getElementById('wrapper-1').style.opacity = '0'; 
+                    document.getElementById('wrapper-4').style.opacity = '0';
+                }
+            }
+            if (action === 'timer_control') {
+                // No audio playback on host.html as per constraints
+            }
+            if (action === 'send_explanation_to_host') {
+                document.getElementById('explain-text').innerText = data.explain || "Không có giải thích cho câu này.";
+            }
+            if (action === 'tech_to_host_msg') {
+                document.getElementById('tech-msg-display').innerText = data.msg;
+            }
+            if (action === 'reset_round') {
+                resetAllHostVisuals();
+            }
+        };
+
+        function resetAllHostVisuals() {
+            currentBets = { b1: 0, b2: 0, b3: 0, b4: 0 };
+            document.getElementById('explain-text').style.display = 'none';
+            document.getElementById('explain-text').innerText = "Chưa có dữ liệu";
+            document.getElementById('host-question-text').innerText = "Đang đợi phòng máy nạp câu hỏi...";
+            document.getElementById('host-timer').innerText = "60";
+            for(let i = 1; i <= 4; i++) {
+                document.getElementById(`wrapper-${i}`).style.opacity = '1';
+                const label = document.getElementById(`label-ans-${i}`);
+                label.innerText = "---";
+                label.classList.remove('host-win', 'host-lose');
+                document.getElementById(`img-door-${i}`).classList.remove('dropped');
+                document.getElementById(`drop-text-${i}`).style.display = 'none';
+                document.getElementById(`money-${i}`).innerText = "0 $A";
+            }
+        }
+    </script>
+</body>
+</html>

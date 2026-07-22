@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'LHF_Mono';
+            src: url('LHF_Mono.otf') format('opentype'), url('LHF Mono.otf') format('opentype');
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-weight: bold !important; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #18191a; 
+            color: #e4e6eb; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-size: 13px;
+            overflow-x: hidden;
+        }
+        
+        /* Top Header Bar */
+        header {
+            min-height: 46px;
+            background: #242526;
+            border-bottom: 1px solid #3a3b3c;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 16px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        header h1 {
+            font-size: 15px;
+            color: #ffcc00;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .header-badge {
+            background: #2d88ff;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .header-pin-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #1c1e21;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #3a3b3c;
+        }
+        .header-pin-bar label {
+            margin-bottom: 0;
+            color: #2e89ff;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .header-pin-bar input {
+            width: 60px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #ffcc00;
+            padding: 2px 4px;
+        }
+        
+        /* Main Dashboard Grid */
+        .dashboard-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.1fr;
+            gap: 12px;
+            padding: 10px 12px;
+            height: calc(100vh - 46px);
+            overflow: hidden;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 1024px) {
+            body { height: auto; overflow-y: auto; }
+            .dashboard-container {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                overflow: visible;
+                gap: 12px;
+            }
+            .panel {
+                overflow: visible;
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            header h1 {
+                justify-content: center;
+            }
+            .header-pin-bar {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .inline-group {
+                flex-wrap: wrap;
+            }
+            .inline-group button {
+                flex: 1 1 calc(50% - 6px);
+                min-height: 38px;
+            }
+            button {
+                min-height: 36px;
+                font-size: 13px;
+            }
+            input[type="text"], select, textarea {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+        
+        .panel {
+            background: #242526;
+            border: 1px solid #3a3b3c;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+        
+        .panel-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffcc00;
+            border-bottom: 1px solid #3a3b3c;
+            padding-bottom: 5px;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group {
+            background: #1c1e21;
+            border: 1px solid #3a3b3c;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #ffcc00;
+            font-size: 12px;
+        }
+        
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 5px 8px;
+            background: #242526;
+            border: 1px solid #4e4f50;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 12px;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #2e89ff;
+            outline: none;
+        }
+        
+        /* Custom File Input Styling */
+        .file-upload-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #242526;
+            border: 1px dashed #2e89ff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .file-upload-container:hover {
+            border-color: #ffcc00;
+            background: #2a2c2d;
+            box-shadow: 0 0 8px rgba(46, 137, 255, 0.3);
+        }
+        .file-upload-btn {
+            background: linear-gradient(135deg, #0052d4, #4364f7, #6fb1fc);
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            transition: transform 0.1s ease;
+        }
+        .file-upload-btn:hover {
+            transform: scale(1.02);
+            background: orange !important;
+            color: white !important;
+        }
+        .file-name-text {
+            color: #b0b3b8;
+            font-size: 12px;
+            font-weight: bold !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+        .file-name-text.has-file {
+            color: #00e676;
+            font-weight: bold !important;
+        }
+
+        button {
+            width: 100%;
+            padding: 6px 8px;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.15s ease, transform 0.05s ease;
+        }
+        button:hover { background: orange !important; color: white !important; }
+        button:active { transform: translateY(1px); }
+        
+        .btn-orange { background: #fc0; color: black;}
+        .btn-red { background: #c0392b; }
+        .btn-blue { background: #2980b9; }
+        .btn-purple { background: #8e44ad; }
+        
+        .inline-group { display: flex; gap: 6px; margin-top: 4px; }
+        .inline-group button { margin-top: 0; }
+        
+        .ans-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .ans-row input { flex: 1; }
+        .ans-row button { width: 100px; flex-shrink: 0; }
+        
+        .bet-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .bet-box {
+            background: #111213;
+            border: 1px dashed #444;
+            border-radius: 4px;
+            padding: 4px 6px;
+            text-align: center;
+        }
+        .bet-box .title {
+            font-size: 11px;
+            color: #aaa;
+        }
+        .bet-display {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00e676;
+        }
+        
+        .sfx-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+        
+        /* Custom Scrollbar */
+        .panel::-webkit-scrollbar { width: 5px; }
+        .panel::-webkit-scrollbar-track { background: #1c1e21; }
+        .panel::-webkit-scrollbar-thumb { background: #4e4f50; border-radius: 3px; }
+        .panel::-webkit-scrollbar-thumb:hover { background: #666; }
+
+        /* Custom Popup Modal Styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .popup-card {
+            background: #242526;
+            border: 2px solid #2e89ff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 420px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            transform: scale(0.85);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .popup-overlay.active .popup-card {
+            transform: scale(1);
+        }
+        .popup-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            color: #ffcc00;
+            border-bottom: 1px solid #3a3b3c;
+            padding-bottom: 8px;
+        }
+        .popup-body {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e4e6eb;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .popup-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .popup-btn {
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            width: auto;
+        }
+        .popup-btn-confirm {
+            background: #2e89ff;
+            color: white;
+        }
+        .popup-btn-confirm:hover {
+            background: #1a73e8 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Controller<span class="header-badge"></span></h1>
+        
+        <div class="header-pin-bar">
+            <label>🔑 MÃ PIN PLAYER:</label>
+            <input type="text" id="pin-code-input" maxlength="4" value="1234">
+            <button class="btn-blue" style="width: auto; padding: 4px 8px;" onclick="updatePinCode()">Cập nhật</button>
+            <button class="btn-orange" style="width: auto; padding: 4px 8px;" onclick="generateRandomPin()">Ngẫu nhiên</button>
+            <button class="btn-red" style="width: auto; padding: 4px 8px;" onclick="forceLockPlayers()">Khóa Player</button>
+        </div>
+
+        <div id="sfx-status" style="font-weight: bold; color: #f39c12; font-size: 12px;">Sẵn sàng phát âm thanh</div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- COLUMN 1: CONTENT & QUESTIONS -->
+        <div class="panel">
+            <div class="panel-title">1. NẠP DỮ LIỆU & NỘI DUNG</div>
+            
+            <div class="form-group">
+                <label>1. Tải Câu Hỏi Từ Excel</label>
+                <div class="file-upload-container" onclick="document.getElementById('excel-file').click();">
+                    <span class="file-upload-btn">📂 Chọn file Excel</span>
+                    <span id="file-name-display" class="file-name-text">Chưa chọn tập tin nào...</span>
+                    <input type="file" id="excel-file" accept=".xlsx, .xls" onchange="handleFileSelect(this)" style="display: none;">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                    <div>
+                        <label>Vòng Chơi (Luật Cửa)</label>
+                        <select id="select-round" onchange="handleRoundChange()">
+                            <option value="1">Vòng 1 (4 Cửa)</option>
+                            <option value="5">Vòng 5 (3 Cửa)</option>
+                            <option value="8">Vòng 8 (2 Cửa)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Chọn Câu Hỏi</label>
+                        <select id="select-question-index" onchange="loadSelectedQuestion()">
+                            <option value="">-- Chưa có --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>2. Chủ Đề Để Lựa Chọn</label>
+                <input type="text" id="topic-a" placeholder="Tên chủ đề A" style="margin-bottom: 4px;">
+                <input type="text" id="topic-b" placeholder="Tên chủ đề B">
+                <div class="inline-group">
+                    <button class="btn-blue" onclick="sendTopics()">Hiện 2 Chủ Đề</button>
+                    <button class="btn-orange" onclick="lockTopic('A')">Chốt Chủ Đề A</button>
+                    <button class="btn-orange" onclick="lockTopic('B')">Chốt Chủ Đề B</button>
+                </div>
+            </div>
+
+            <div class="form-group" style="flex: 1; display: flex; flex-direction: column;">
+                <label>3. Câu Hỏi & Đáp Án</label>
+                <textarea id="question-input" rows="2" placeholder="Nội dung câu hỏi chữ lớn..." style="margin-bottom: 6px; resize: vertical;"></textarea>
+                <div class="inline-group" style="margin-bottom: 8px;">
+                    <button class="btn-blue" onclick="sendQuestion()">Hiện Câu Hỏi</button>
+                    <button class="btn-orange" onclick="showAllQuestionAndAnswers()">Hiện Q &amp; A</button>
+                </div>
+                
+                <div style="border-top: 1px solid #444; padding-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+                    <button class="btn-blue" style="margin-bottom: 4px;" onclick="playSfx('SFX/drop_question_bed.mp3')">🎵 Bắt Đầu Hiện Đáp Án</button>
+                    
+                    <div class="ans-row">
+                        <input type="text" id="ans-1" placeholder="Đáp án cửa 1">
+                        <button onclick="sendSingleAnswer(1)">Hiện Cửa 1</button>
+                    </div>
+                    
+                    <div class="ans-row">
+                        <input type="text" id="ans-2" placeholder="Đáp án cửa 2">
+                        <button onclick="sendSingleAnswer(2)">Hiện Cửa 2</button>
+                    </div>
+                    
+                    <div class="ans-row">
+                        <input type="text" id="ans-3" placeholder="Đáp án cửa 3">
+                        <button onclick="sendSingleAnswer(3)">Hiện Cửa 3</button>
+                    </div>
+                    
+                    <div class="ans-row">
+                        <input type="text" id="ans-4" placeholder="Đáp án cửa 4">
+                        <button onclick="sendSingleAnswer(4)">Hiện Cửa 4</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: TIMER, BETS & TRAPDOORS -->
+        <div class="panel">
+            <div class="panel-title">2. THỜI GIAN & HỐ SẬP</div>
+            
+            <div class="form-group">
+                <label id="time-display" style="font-size: 13px; text-align: center; color: #00e676; font-family: 'LHF_Mono', 'LHF Mono', monospace;">THỜI GIAN ĐẶT CƯỢC: --:--</label>
+                <div class="inline-group">
+                    <button onclick="startTimer()">Bắt Đầu (60s)</button>
+                    <button class="btn-orange" onclick="add30Seconds()">+30 Giây</button>
+                    <button class="btn-red" onclick="stopTimer()">Dừng Đếm</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Theo Dõi Tiền Đặt Cược Trực Tuyến</label>
+                <div class="bet-grid">
+                    <div class="bet-box"><div class="title">Cửa 1</div><div class="bet-display" id="mc-bet-1">0 $A</div></div>
+                    <div class="bet-box"><div class="title">Cửa 2</div><div class="bet-display" id="mc-bet-2">0 $A</div></div>
+                    <div class="bet-box"><div class="title">Cửa 3</div><div class="bet-display" id="mc-bet-3">0 $A</div></div>
+                    <div class="bet-box"><div class="title">Cửa 4</div><div class="bet-display" id="mc-bet-4">0 $A</div></div>
+                </div>
+            </div>
+
+            <div class="form-group" style="background: #1c2833; border: 1px solid #34495e;">
+                <label style="color: #00e676; font-size: 13px; font-weight: bold;">💰 TĂNG GIẢM CỌC TIỀN NGUỜI CHƠI</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #111213; padding: 5px 8px; border-radius: 4px; margin-bottom: 6px; border: 1px dashed #444;">
+                    <span style="font-size: 11px; color: #aaa;">Tổng tiền còn lại:</span>
+                    <span id="mc-total-money" style="font-size: 13px; font-weight: bold; color: #00e676;">1.000.000 $A (40 cọc)</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+                    <button class="btn-blue" onclick="addPlayerStacksMC(1)">➕ Thêm 1 Cọc (+25k)</button>
+                    <button class="btn-blue" onclick="addPlayerStacksMC(4)">➕ Thêm 4 Cọc (+100k)</button>
+                    <button class="btn-orange" onclick="removePlayerStacksMC(1)">➖ Bớt 1 Cọc (-25k)</button>
+                    <button class="btn-orange" onclick="removePlayerStacksMC(4)">➖ Bớt 4 Cọc (-100k)</button>
+                </div>
+
+                <div style="display: flex; gap: 4px; align-items: center;">
+                    <input type="number" id="custom-stacks-input" placeholder="Số cọc" value="40" min="0" max="100" style="width: 70px; text-align: center; font-weight: bold; padding: 4px;">
+                    <button class="btn-purple" style="flex: 1;" onclick="setCustomStacksMC()">Đổi Số Cọc</button>
+                    <button class="btn-red" style="width: auto; padding: 4px 8px;" onclick="setPlayerStacksMC(40)" title="Khôi phục 40 cọc (1 triệu)">40 Cọc</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Kích Hoạt Sập Hố Vật Lý</label>
+                <button class="btn-orange" style="margin-bottom: 6px;" onclick="playSfx('SFX/drop_intrigue.mp3')">🔥 Kích Hoạt (Nhạc Hồi Hộp)</button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                    <button class="btn-red" onclick="openDoor(1)">SẬP HỐ LỖI 1</button>
+                    <button class="btn-red" onclick="openDoor(2)">SẬP HỐ LỖI 2</button>
+                    <button class="btn-red" onclick="openDoor(3)">SẬP HỐ LỖI 3</button>
+                    <button class="btn-red" onclick="openDoor(4)">SẬP HỐ LỖI 4</button>
+                </div>
+                <button class="btn-red" style="margin-top: 6px; font-weight: bold; font-size: 14px;" onclick="playSfx('SFX/drop_trapdoor_2.mp3.mp3', false, false)">💥 SẬP</button>
+            </div>
+
+            <div class="form-group" style="background: #2c3e50; margin-top: auto;">
+                <label style="color: #fff;">Quản Lý Vòng Đấu</label>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <button onclick="collectWinningMoney()">THU TIỀN THẮNG VỀ BÀN</button>
+                    <button class="btn-orange" onclick="penaltyFine()">PHẠT GIẢM 1 CỌC TIỀN</button>
+                    <button class="btn-red" onclick="resetRound()" style="margin-top: 4px;">RESET TOÀN BỘ VÒNG CHƠI</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: SOUNDBOARD SFX -->
+        <div class="panel">
+            <div class="panel-title">3. BẢNG ÂM THANH (SOUNDBOARD SFX)</div>
+            
+            <div class="sfx-grid">
+                <button class="btn-blue" onclick="playSfx('SFX/drop_opening.mp3')">🎵 Mở Đầu (Opening)</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_welcome_contestants.mp3')">👋 Chào Thí Sinh</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_host_entrance.mp3')">🎤 MC Ra Sân Khấu</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_letsplay.mp3')">🚀 Let's Play</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_category.mp3')">🎯 Hiện Chủ Đề</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_chosen_category.mp3')">📌 Chốt Chủ Đề</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_question_bed.mp3')">❓ Nền Câu Hỏi</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_Reveal the Question_2.mp3')">💡 Hiện Câu Hỏi</button>
+                <button class="btn-blue" onclick="playSfx('SFX/drop_question_and_answer_reveal.mp3')">📝 Hiện Q &amp; A</button>
+                <button class="btn-orange" onclick="playSfx('SFX/drop_intrigue.mp3')">🔥 Hồi Hộp Đặt Cược</button>
+                <button class="btn-orange" onclick="playSfx('SFX/drop_timer.mp3')">⏱️ Đếm Ngược 60s</button>
+                <button class="btn-orange" onclick="playSfx('SFX/drop_timer_q8.mp3')">⏰ Đếm Ngược Vòng 8</button>
+                <button class="btn-orange" onclick="playSfx('SFX/drop_30s.wav')">➕ Cộng 30 Giây</button>
+                <button class="btn-orange" onclick="playSfx('SFX/drop_timer_stop.mp3')">🛑 Dừng Thời Gian</button>
+                <button class="btn-red" onclick="playSfx('SFX/drop_trapdoor_1.mp3')">💥 Sập Hố 1</button>
+                <button class="btn-red" onclick="playSfx('SFX/drop_trapdoor_2.mp3.mp3')">💥 Sập Hố 2</button>
+                <button style="background: #27ae60;" onclick="playSfx('SFX/drop_win.mp3')">🏆 Chiến Thắng</button>
+                <button class="btn-red" onclick="playSfx('SFX/drop_lose.mp3')">❌ Thua Cuộc</button>
+                <button class="btn-purple" onclick="playSfx('SFX/drop_commercial_in.mp3')">📺 Quảng Cáo Vào</button>
+                <button class="btn-purple" onclick="playSfx('SFX/drop_commercial_out.mp3')">📺 Quảng Cáo Ra</button>
+                <button style="background: #2c3e50;" onclick="playSfx('SFX/drop_closing.mp3')">🎬 Kết Thúc Show</button>
+                <button style="background: #2c3e50;" onclick="playSfx('SFX/drop_main.mp3')">🌟 Nhạc Main</button>
+            </div>
+
+            <button class="btn-red" style="font-weight: bold; background: #d32f2f; margin-top: 4px;" onclick="stopSfx()">🔇 DỪNG TOÀN BỘ ÂM THANH</button>
+
+            <div class="form-group" style="margin-top: auto;">
+                <label>Phát File Âm Thanh Tùy Chọn:</label>
+                <select id="sfx-select-list" onchange="document.getElementById('custom-sfx-input').value = this.value" style="margin-bottom: 4px;">
+                    <option value="SFX/drop_30s.wav">drop_30s.wav</option>
+                    <option value="SFX/drop_category.mp3">drop_category.mp3</option>
+                    <option value="SFX/drop_chosen_category.mp3">drop_chosen_category.mp3</option>
+                    <option value="SFX/drop_closing.mp3">drop_closing.mp3</option>
+                    <option value="SFX/drop_commercial_in.mp3">drop_commercial_in.mp3</option>
+                    <option value="SFX/drop_commercial_out.mp3">drop_commercial_out.mp3</option>
+                    <option value="SFX/drop_host_entrance.mp3">drop_host_entrance.mp3</option>
+                    <option value="SFX/drop_intrigue.mp3">drop_intrigue.mp3</option>
+                    <option value="SFX/drop_letsplay.mp3">drop_letsplay.mp3</option>
+                    <option value="SFX/drop_lose.mp3">drop_lose.mp3</option>
+                    <option value="SFX/drop_main.mp3">drop_main.mp3</option>
+                    <option value="SFX/drop_opening.mp3">drop_opening.mp3</option>
+                    <option value="SFX/drop_question_and_answer_reveal.mp3">drop_question_and_answer_reveal.mp3</option>
+                    <option value="SFX/drop_question_bed.mp3">drop_question_bed.mp3</option>
+                    <option value="SFX/drop_Reveal the Question_2.mp3">drop_Reveal the Question_2.mp3</option>
+                    <option value="SFX/drop_timer.mp3">drop_timer.mp3</option>
+                    <option value="SFX/drop_timer_q8.mp3">drop_timer_q8.mp3</option>
+                    <option value="SFX/drop_timer_stop.mp3">drop_timer_stop.mp3</option>
+                    <option value="SFX/drop_trapdoor_1.mp3">drop_trapdoor_1.mp3</option>
+                    <option value="SFX/drop_trapdoor_2.mp3.mp3">drop_trapdoor_2.mp3.mp3</option>
+                    <option value="SFX/drop_variant.wav">drop_variant.wav</option>
+                    <option value="SFX/drop_variant_2_3_4.mp3">drop_variant_2_3_4.mp3</option>
+                    <option value="SFX/drop_welcome_contestants.mp3">drop_welcome_contestants.mp3</option>
+                    <option value="SFX/drop_win.mp3">drop_win.mp3</option>
+                </select>
+                <div class="inline-group">
+                    <input type="text" id="custom-sfx-input" placeholder="Tên file SFX..." value="SFX/drop_30s.wav">
+                    <button class="btn-blue" style="width: 80px; flex-shrink: 0;" onclick="playCustomSfx()">Phát</button>
+                    <button class="btn-red" style="width: 70px; flex-shrink: 0;" onclick="stopSfx()">Tắt</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Popup UI Component -->
+    <div id="custom-popup" class="popup-overlay">
+        <div class="popup-card">
+            <div class="popup-header">
+                <span>🔔</span>
+                <span id="popup-title">THÔNG BÁO</span>
+            </div>
+            <div class="popup-body" id="popup-message">
+                Nội dung thông báo...
+            </div>
+            <div class="popup-footer">
+                <button class="popup-btn popup-btn-confirm" onclick="closePopup()">Đồng Ý</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script 1: Network Sync JS -->
+    <script>
+    /* network_sync.js - Cross-Device Realtime Network Synchronization */
+    (function () {
+        class GameSyncChannel {
+            constructor(channelName) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const customRoom = urlParams.get('room') || urlParams.get('channel');
+                
+                this.baseChannelName = channelName || 'gameshow_money_drop';
+                this.topicName = customRoom ? `${this.baseChannelName}_${customRoom}` : `${this.baseChannelName}_main_channel_v2`;
+                
+                this.localChannel = new BroadcastChannel(this.baseChannelName);
+                this.onmessageHandler = null;
+                this.instanceId = 'client_' + Math.random().toString(36).substring(2, 9);
+                this.mqttClient = null;
+                this.isConnected = false;
+                this.pendingQueue = [];
+
+                this.localChannel.onmessage = (event) => {
+                    if (event.data && event.data._senderId !== this.instanceId) {
+                        if (typeof this.onmessageHandler === 'function') {
+                            this.onmessageHandler(event);
+                        }
+                    }
+                };
+
+                this.initMqtt();
+            }
+
+            get onmessage() {
+                return this.onmessageHandler;
+            }
+
+            set onmessage(handler) {
+                this.onmessageHandler = handler;
+            }
+
+            initMqtt() {
+                if (typeof window.mqtt !== 'undefined') {
+                    this.connectBrokers();
+                    return;
+                }
+
+                const cdns = [
+                    'https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js',
+                    'https://cdn.jsdelivr.net/npm/mqtt@5.3.4/dist/mqtt.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js'
+                ];
+
+                let idx = 0;
+                const loadScript = () => {
+                    if (idx >= cdns.length) {
+                        console.warn('⚠️ MQTT CDN unavailable, using BroadcastChannel local only.');
+                        return;
+                    }
+                    const s = document.createElement('script');
+                    s.src = cdns[idx++];
+                    s.onload = () => {
+                        console.log('✅ MQTT Library loaded successfully.');
+                        this.connectBrokers();
+                    };
+                    s.onerror = () => loadScript();
+                    document.head.appendChild(s);
+                };
+                loadScript();
+            }
+
+            connectBrokers() {
+                if (!window.mqtt) return;
+
+                const brokers = [
+                    'wss://broker.emqx.io:8084/mqtt',
+                    'wss://broker.hivemq.com:8884/mqtt',
+                    'wss://test.mosquitto.org:8081/mqtt'
+                ];
+
+                let currentBrokerIdx = 0;
+
+                const tryConnect = () => {
+                    if (currentBrokerIdx >= brokers.length) return;
+                    const brokerUrl = brokers[currentBrokerIdx];
+                    console.log(`🌐 Connecting to MQTT broker: ${brokerUrl} (Topic: ${this.topicName})`);
+
+                    try {
+                        this.mqttClient = window.mqtt.connect(brokerUrl, {
+                            clientId: 'gs_' + this.instanceId,
+                            keepalive: 30,
+                            clean: true,
+                            reconnectPeriod: 4000,
+                            connectTimeout: 6000
+                        });
+
+                        this.mqttClient.on('connect', () => {
+                            this.isConnected = true;
+                            console.log(`🟢 [MQTT ONLINE] Connected to ${brokerUrl} on topic: ${this.topicName}`);
+                            
+                            this.mqttClient.subscribe(this.topicName, { qos: 0 }, (err) => {
+                                if (!err) {
+                                    this.flushQueue();
+                                    this.notifyConnectionStatus(true);
+                                    if (typeof this.onmessageHandler === 'function') {
+                                        this.onmessageHandler({ data: { action: 'mqtt_connected' } });
+                                    }
+                                }
+                            });
+                        });
+
+                        this.mqttClient.on('message', (topic, message) => {
+                            try {
+                                const payload = JSON.parse(message.toString());
+                                if (payload && payload._senderId !== this.instanceId) {
+                                    if (typeof this.onmessageHandler === 'function') {
+                                        this.onmessageHandler({ data: payload });
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('MQTT message parse error:', e);
+                            }
+                        });
+
+                        this.mqttClient.on('error', (err) => {
+                            console.warn(`⚠️ Broker error on ${brokerUrl}:`, err);
+                            this.isConnected = false;
+                            this.notifyConnectionStatus(false);
+                            try { this.mqttClient.end(true); } catch(e){}
+                            currentBrokerIdx++;
+                            setTimeout(tryConnect, 1000);
+                        });
+
+                    } catch (e) {
+                        console.warn(`⚠️ Broker init exception on ${brokerUrl}:`, e);
+                        currentBrokerIdx++;
+                        setTimeout(tryConnect, 1000);
+                    }
+                };
+
+                tryConnect();
+            }
+
+            flushQueue() {
+                if (!this.mqttClient || !this.mqttClient.connected) return;
+                while (this.pendingQueue.length > 0) {
+                    const msg = this.pendingQueue.shift();
+                    try {
+                        this.mqttClient.publish(this.topicName, JSON.stringify(msg), { qos: 0 });
+                    } catch (e) {}
+                }
+            }
+
+            notifyConnectionStatus(online) {
+                const statusEls = document.querySelectorAll('.network-status-badge');
+                statusEls.forEach(el => {
+                    if (online) {
+                        el.style.color = '#00e676';
+                        el.innerText = '🟢 Trực tuyến (WebSockets Connected)';
+                    } else {
+                        el.style.color = '#ff5252';
+                        el.innerText = '🔴 Ngoại tuyến (Đang kết nối lại...)';
+                    }
+                });
+            }
+
+            postMessage(msg) {
+                if (!msg) return;
+                const payload = Object.assign({}, msg, { _senderId: this.instanceId, _timestamp: Date.now() });
+
+                try {
+                    this.localChannel.postMessage(payload);
+                } catch (e) {}
+
+                if (this.mqttClient && this.mqttClient.connected) {
+                    try {
+                        this.mqttClient.publish(this.topicName, JSON.stringify(payload), { qos: 0 });
+                    } catch (e) {
+                        this.pendingQueue.push(payload);
+                    }
+                } else {
+                    this.pendingQueue.push(payload);
+                    if (this.pendingQueue.length > 50) this.pendingQueue.shift();
+                }
+            }
+        }
+
+        window.GameSyncChannel = GameSyncChannel;
+    })();
+    </script>
+
+    <!-- Custom Popup Helper Function -->
+    <script>
+    let popupCallback = null;
+
+    function showPopup(message, title = 'THÔNG BÁO', callback = null) {
+        const popup = document.getElementById('custom-popup');
+        const msgEl = document.getElementById('popup-message');
+        const titleEl = document.getElementById('popup-title');
+        
+        if (msgEl) msgEl.innerText = message;
+        if (titleEl) titleEl.innerText = title;
+        
+        popupCallback = callback;
+        if (popup) popup.classList.add('active');
+    }
+
+    function closePopup() {
+        const popup = document.getElementById('custom-popup');
+        if (popup) popup.classList.remove('active');
+        if (typeof popupCallback === 'function') {
+            const cb = popupCallback;
+            popupCallback = null;
+            cb();
+        }
+    }
+
+    // Override native alert to show non-blocking custom popup
+    window.alert = function(msg) {
+        showPopup(msg, 'THÔNG BÁO');
+    };
+
+    // File Input Helper
+    function handleFileSelect(input) {
+        const display = document.getElementById('file-name-display');
+        if (input.files && input.files.length > 0) {
+            const filename = input.files[0].name;
+            display.innerText = "📄 " + filename;
+            display.classList.add('has-file');
+            importExcel(input);
+        } else {
+            display.innerText = "Chưa chọn tập tin nào...";
+            display.classList.remove('has-file');
+        }
+    }
+    </script>
+
+    <!-- Script 2: Controller JS Logic -->
+    <script>
+    const channel = (typeof GameSyncChannel !== 'undefined') ? new GameSyncChannel('gameshow_money_drop') : new BroadcastChannel('gameshow_money_drop');
+    let excelDataStore = [
+        { round: 1, topicA: "cd1", topicB: "cd2", questionA: "q1", questionB: "q2", ansA: ["a1", "b1", "c1", "d1"], ansB: ["a2", "b2", "c2", "d2"] },
+        { round: 2, topicA: "cd3", topicB: "cd4", questionA: "q3", questionB: "q4", ansA: ["a3", "b3", "c3", "d3"], ansB: ["a4", "b4", "c4", "d4"] },
+        { round: 3, topicA: "cd5", topicB: "cd6", questionA: "q1", questionB: "q2", ansA: ["a5", "b5", "c5", "d5"], ansB: ["a6", "b6", "c6", "d6"] },
+        { round: 4, topicA: "cd7", topicB: "cd8", questionA: "q3", questionB: "q4", ansA: ["a7", "b7", "c7", "d7"], ansB: ["a8", "b8", "c8", "d8"] },
+        { round: 5, topicA: "cd9", topicB: "cd10", questionA: "q1", questionB: "q2", ansA: ["a9", "b9", "c9"], ansB: ["a10", "b10", "c10"] },
+        { round: 6, topicA: "cd11", topicB: "cd12", questionA: "q3", questionB: "q4", ansA: ["a11", "b11", "c11"], ansB: ["a12", "b12", "c12"] },
+        { round: 7, topicA: "cd13", topicB: "cd14", questionA: "q1", questionB: "q2", ansA: ["a13", "b13", "c13"], ansB: ["a14", "b14", "c14"] },
+        { round: 8, topicA: "cd15", topicB: "cd16", questionA: "q3", questionB: "q4", ansA: ["a15", "b15"], ansB: ["a16", "b16"] }
+    ];
+    let timeLeft = 60;
+    let timerInterval = null;
+
+    let currentPin = localStorage.getItem('game_pin') || '1234';
+
+    // Populate dropdown and PIN on load
+    window.addEventListener('DOMContentLoaded', () => {
+        updateQuestionSelector();
+        initPinCode();
+    });
+
+    function initPinCode() {
+        const pinInput = document.getElementById('pin-code-input');
+        if (pinInput) {
+            pinInput.value = currentPin;
+        }
+        localStorage.setItem('game_pin', currentPin);
+        sendCommand('update_pin', { pin: currentPin });
+    }
+
+    function updatePinCode() {
+        const pinInput = document.getElementById('pin-code-input');
+        const val = pinInput.value.trim();
+        if (!/^\d{4}$/.test(val)) {
+            showPopup("Mã PIN phải là 4 chữ số!", "CẢNH BÁO");
+            pinInput.value = currentPin;
+            return;
+        }
+        currentPin = val;
+        localStorage.setItem('game_pin', currentPin);
+        sendCommand('update_pin', { pin: currentPin, forceLock: true });
+        showPopup(`Đã cập nhật mã PIN mới: ${currentPin}\n(Đã yêu cầu tất cả Player xác nhận lại)`, "THÀNH CÔNG");
+    }
+
+    function generateRandomPin() {
+        const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+        const pinInput = document.getElementById('pin-code-input');
+        if (pinInput) pinInput.value = randomPin;
+        updatePinCode();
+    }
+
+    function forceLockPlayers() {
+        localStorage.removeItem('player_auth_pin');
+        sendCommand('update_pin', { pin: currentPin, forceLock: true });
+        showPopup("Đã gửi lệnh khóa tất cả màn hình Player!", "THÔNG BÁO");
+    }
+
+    // Listen to messages from other windows/tabs (e.g., live player bets)
+    channel.onmessage = function(event) {
+        const { action, data } = event.data;
+        if (action === 'mqtt_connected' || action === 'request_pin') {
+            sendCommand('update_pin', { pin: currentPin });
+        }
+        if (action === 'sync_bets_to_mc' && data) {
+            const b1 = data.b1 || 0;
+            const b2 = data.b2 || 0;
+            const b3 = data.b3 || 0;
+            const b4 = data.b4 || 0;
+            document.getElementById('mc-bet-1').innerText = b1.toLocaleString('vi-VN') + " $A";
+            document.getElementById('mc-bet-2').innerText = b2.toLocaleString('vi-VN') + " $A";
+            document.getElementById('mc-bet-3').innerText = b3.toLocaleString('vi-VN') + " $A";
+            document.getElementById('mc-bet-4').innerText = b4.toLocaleString('vi-VN') + " $A";
+
+            if (data.totalMoney !== undefined && data.totalStacks !== undefined) {
+                const moneyEl = document.getElementById('mc-total-money');
+                if (moneyEl) {
+                    moneyEl.innerText = `${data.totalMoney.toLocaleString('vi-VN')} $A (${data.totalStacks} cọc)`;
+                }
+                const inputEl = document.getElementById('custom-stacks-input');
+                if (inputEl && document.activeElement !== inputEl) {
+                    inputEl.value = data.totalStacks;
+                }
+            }
+        }
+    };
+
+    // Periodic heartbeat broadcast every 3s to guarantee cross-device sync
+    setInterval(() => {
+        if (typeof channel !== 'undefined' && channel.postMessage) {
+            sendCommand('update_pin', { pin: currentPin });
+        }
+    }, 3000);
+
+    function sendCommand(action, data = {}) {
+        channel.postMessage({
+            action,
+            data,
+            timestamp: Date.now()
+        });
+    }
+
+    function importExcel(element) {
+        const file = element.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+            parseExcelQuestions(json);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function parseExcelQuestions(rows) {
+        if (!rows || rows.length < 2) return;
+
+        const cleanRows = [];
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+            
+            const col0 = String(row[0] || '').trim().toLowerCase();
+            const col1 = String(row[1] || '').trim().toLowerCase();
+            const col2 = String(row[2] || '').trim().toLowerCase();
+
+            if (col0 === 'vòng' || col1 === 'chủ đề' || col2 === 'câu hỏi' || col1 === 'topic') {
+                continue;
+            }
+
+            const hasContent = row.some((cell, idx) => idx > 0 && cell !== undefined && cell !== null && String(cell).trim() !== '');
+            if (hasContent) {
+                cleanRows.push(row);
+            }
+        }
+
+        if (cleanRows.length === 0) return;
+
+        let isSingleRowFormat = false;
+        const sample = cleanRows[0];
+        if (sample && sample.length >= 9) {
+            const col8Val = String(sample[8] || '').trim().toLowerCase();
+            if (col8Val !== '' && !col8Val.includes('hình') && !col8Val.includes('media') && !col8Val.includes('video')) {
+                isSingleRowFormat = true;
+            }
+        }
+
+        excelDataStore = [];
+
+        if (isSingleRowFormat) {
+            cleanRows.forEach((row, i) => {
+                const rawRound = String(row[0] || '').replace(/\D/g, '');
+                const roundNum = rawRound ? parseInt(rawRound) : (i + 1);
+
+                const getAnswers = (r, startCol, endCol) => {
+                    const arr = [];
+                    for (let c = startCol; c <= endCol; c++) {
+                        const value = r[c];
+                        if (value !== undefined && value !== null && String(value).trim() !== "") {
+                            arr.push(String(value).trim());
+                        }
+                    }
+                    return arr;
+                };
+
+                excelDataStore.push({
+                    round: roundNum,
+                    topicA: String(row[1] || "").trim(),
+                    topicB: String(row[7] || "").trim(),
+                    questionA: String(row[2] || "").trim(),
+                    questionB: String(row[8] || "").trim(),
+                    ansA: getAnswers(row, 3, 6),
+                    ansB: getAnswers(row, 9, 12)
+                });
+            });
+        } else {
+            let currentRound = 1;
+            for (let i = 0; i < cleanRows.length; i += 2) {
+                const rowA = cleanRows[i];
+                const rowB = cleanRows[i + 1];
+
+                if (rowA && rowA[0] !== undefined && rowA[0] !== null) {
+                    const digits = String(rowA[0]).replace(/\D/g, '');
+                    if (digits) {
+                        currentRound = parseInt(digits);
+                    }
+                }
+
+                const getAnswers = (row) => {
+                    if (!row) return [];
+                    const arr = [];
+                    for (let c = 3; c <= 6; c++) {
+                        const value = row[c];
+                        if (value !== undefined && value !== null && String(value).trim() !== "") {
+                            arr.push(String(value).trim());
+                        }
+                    }
+                    return arr;
+                };
+
+                excelDataStore.push({
+                    round: currentRound,
+                    topicA: rowA ? String(rowA[1] || "").trim() : "",
+                    topicB: rowB ? String(rowB[1] || "").trim() : "",
+                    questionA: rowA ? String(rowA[2] || "").trim() : "",
+                    questionB: rowB ? String(rowB[2] || "").trim() : "",
+                    ansA: getAnswers(rowA),
+                    ansB: getAnswers(rowB)
+                });
+
+                currentRound++;
+            }
+        }
+
+        updateQuestionSelector();
+        showPopup(`Đã nạp thành công ${excelDataStore.length} câu hỏi từ Excel!`, "THÀNH CÔNG");
+    }
+
+    function updateQuestionSelector() {
+        const qSelect = document.getElementById("select-question-index");
+        if (!qSelect) return;
+        qSelect.innerHTML = "";
+
+        const emptyOp = document.createElement("option");
+        emptyOp.value = "";
+        emptyOp.textContent = "-- Chọn câu hỏi --";
+        qSelect.appendChild(emptyOp);
+
+        excelDataStore.forEach((q, index) => {
+            if (q.topicA || q.questionA) {
+                const opA = document.createElement("option");
+                opA.value = index + "-A";
+                opA.textContent = `Vòng ${q.round} - Chủ đề A: ${q.topicA || '---'} (${q.questionA || ''})`;
+                qSelect.appendChild(opA);
+            }
+
+            if (q.topicB || q.questionB) {
+                const opB = document.createElement("option");
+                opB.value = index + "-B";
+                opB.textContent = `Vòng ${q.round} - Chủ đề B: ${q.topicB || '---'} (${q.questionB || ''})`;
+                qSelect.appendChild(opB);
+            }
+        });
+    }
+
+    function loadSelectedQuestion() {
+        const val = document.getElementById('select-question-index').value;
+        if (!val) return;
+        const [idx, type] = val.split('-');
+        const data = excelDataStore[idx];
+        if (!data) return;
+        
+        document.getElementById('topic-a').value = data.topicA || "";
+        document.getElementById('topic-b').value = data.topicB || "";
+        
+        if (type === 'A') {
+            document.getElementById('question-input').value = data.questionA || "";
+            fillAnswers(data.ansA || []);
+        } else {
+            document.getElementById('question-input').value = data.questionB || "";
+            fillAnswers(data.ansB || []);
+        }
+
+        const roundSelect = document.getElementById("select-round");
+        const roundNum = Number(data.round) || 1;
+        let roundVal = "1";
+        if (roundNum >= 5 && roundNum <= 7) {
+            roundVal = "5";
+        } else if (roundNum === 8) {
+            roundVal = "8";
+        }
+        roundSelect.value = roundVal;
+        handleRoundChange();
+    }
+
+    function fillAnswers(ansList) {
+        for (let i = 1; i <= 4; i++) {
+            const input = document.getElementById("ans-" + i);
+            if (!input) continue;
+            const parentRow = input.closest('.ans-row');
+            
+            if (ansList && ansList[i - 1] !== undefined && ansList[i - 1] !== null && String(ansList[i - 1]).trim() !== "") {
+                input.value = ansList[i - 1];
+                if (parentRow) parentRow.style.display = "flex";
+                else input.style.display = "block";
+            } else {
+                input.value = "";
+                if (parentRow) parentRow.style.display = "none";
+                else input.style.display = "none";
+            }
+        }
+    }
+
+    function sendTopics() { 
+        playSfx('SFX/drop_category.mp3');
+        sendCommand("show_topics", {
+            topicA: document.getElementById("topic-a").value,
+            topicB: document.getElementById("topic-b").value
+        });
+    }
+
+    function lockTopic(type) {   
+        playSfx('SFX/drop_chosen_category.mp3');
+        sendCommand("lock_topic", {
+            type: type,
+            topicName: type === "A"
+                ? document.getElementById("topic-a").value
+                : document.getElementById("topic-b").value
+        });
+    }
+
+    function sendQuestion() { 
+        playSfx('SFX/drop_Reveal the Question_2.mp3', false, false);
+        sendCommand('update_content', { 
+            type: 'question', 
+            data: { question: document.getElementById('question-input').value } 
+        }); 
+    }
+
+    function sendSingleAnswer(id) { 
+        if (id === 1) {
+            playSfx('SFX/drop_variant.wav', false, false);
+        } else {
+            playSfx('SFX/drop_variant_2_3_4.mp3', false, false);
+        }
+        sendCommand('update_single_answer', { 
+            id, 
+            text: document.getElementById(`ans-${id}`).value 
+        }); 
+    }
+
+    function handleRoundChange() {
+        const roundVal = document.getElementById("select-round").value;
+        const selectedQIndexVal = document.getElementById('select-question-index').value;
+        let exactRound = parseInt(roundVal);
+        if (selectedQIndexVal) {
+            const [idx] = selectedQIndexVal.split('-');
+            if (excelDataStore[idx] && excelDataStore[idx].round) {
+                exactRound = Number(excelDataStore[idx].round);
+            }
+        }
+        sendCommand("change_round", { round: parseInt(roundVal), roundNum: exactRound });
+    }
+
+    function startTimer() {
+        stopSfx();
+        clearInterval(timerInterval);
+        timeLeft = 60;
+        updateTimerDisplay();
+
+        sendCommand("timer_control", {
+            status: "start",
+            time: timeLeft
+        });
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+
+            sendCommand("timer_tick", {
+                time: timeLeft
+            });
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                sendCommand("timer_control", {
+                    status: "timeout",
+                    time: 0
+                });
+            }
+        }, 1000);
+    }
+
+    function add30Seconds() {
+        clearInterval(timerInterval);
+        timeLeft += 30;
+        updateTimerDisplay();
+        sendCommand('timer_control', { status: 'add30', time: timeLeft });
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            sendCommand('timer_tick', { time: timeLeft });
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                sendCommand('timer_control', { status: 'timeout' });
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {     
+        clearInterval(timerInterval);
+        sendCommand("timer_control", {
+            status: "stop",
+            time: timeLeft
+        });
+        playSfx('SFX/drop_timer_stop.mp3');
+    }
+
+    function updateTimerDisplay() {
+        let m = Math.floor(timeLeft / 60); 
+        let s = timeLeft % 60;
+        document.getElementById('time-display').innerText = `THỜI GIAN ĐẶT CƯỢC: ${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function openDoor(id) { 
+        playSfx('SFX/drop_trapdoor_1.mp3', false, false);
+        sendCommand('open_door', { doorId: id }); 
+    }
+    function collectWinningMoney() { sendCommand('collect_winning'); }
+    function penaltyFine() { sendCommand('penalty_fine'); }
+    function addPlayerStacksMC(count) { sendCommand('add_player_stacks', { count: count }); }
+    function removePlayerStacksMC(count) { sendCommand('remove_player_stacks', { count: count }); }
+    function setPlayerStacksMC(count) { sendCommand('set_player_stacks', { count: count }); }
+    function setCustomStacksMC() {
+        const input = document.getElementById('custom-stacks-input');
+        if (input) {
+            const val = parseInt(input.value);
+            if (!isNaN(val) && val >= 0) {
+                setPlayerStacksMC(val);
+            }
+        }
+    }
+    function showAllQuestionAndAnswers() {
+        playSfx('SFX/drop_question_and_answer_reveal.mp3', false, false);
+        for (let i = 1; i <= 4; i++) {
+            const val = document.getElementById(`ans-${i}`).value;
+            sendCommand('update_single_answer', { id: i, text: val });
+        }
+        sendCommand('show_all_q_and_a'); 
+    }
+
+    // Soundboard functions
+    let localSfxAudio = null;
+
+    function playSfx(filePath, loop = false, stopPrevious = true) {
+        if (stopPrevious && localSfxAudio) {
+            localSfxAudio.pause();
+            localSfxAudio.currentTime = 0;
+        }
+        
+        const audio = new Audio(filePath);
+        audio.loop = loop;
+        if (stopPrevious) {
+            localSfxAudio = audio;
+        }
+        
+        const statusEl = document.getElementById('sfx-status');
+        
+        audio.play().then(() => {
+            if (statusEl) {
+                statusEl.innerText = `🔊 Đang phát: ${filePath}`;
+                statusEl.style.color = '#2ecc71';
+            }
+        }).catch(err => {
+            console.warn("Lỗi phát SFX tại Controller:", err);
+            if (statusEl) {
+                statusEl.innerText = `⚠️ Lỗi/Không thấy file audio: ${filePath} (Vui lòng kiểm tra tên file trong thư mục SFX)`;
+                statusEl.style.color = '#e74c3c';
+            }
+        });
+
+        sendCommand('play_sfx', { file: filePath, loop: loop, stopPrevious: stopPrevious });
+    }
+
+    function stopSfx() {
+        if (localSfxAudio) {
+            localSfxAudio.pause();
+            localSfxAudio.currentTime = 0;
+            localSfxAudio = null;
+        }
+        const statusEl = document.getElementById('sfx-status');
+        if (statusEl) {
+            statusEl.innerText = `🔇 Đã dừng âm thanh`;
+            statusEl.style.color = '#f39c12';
+        }
+        sendCommand('stop_sfx');
+    }
+
+    function playCustomSfx() {
+        const file = document.getElementById('custom-sfx-input').value.trim();
+        if (file) {
+            playSfx(file);
+        }
+    }
+
+    function resetRound() {
+        stopTimer();
+        document.getElementById('time-display').innerText = `THỜI GIAN ĐẶT CƯỢC: --:--`;
+        sendCommand('reset_round');
+    }
+    </script>
+</body>
+</html>
