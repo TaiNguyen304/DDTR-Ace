@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,15 +67,48 @@ io.on('connection', (socket) => {
   });
 });
 
+// Case-insensitive file & route handler middleware
+app.use((req, res, next) => {
+  const reqPath = decodeURIComponent(req.path);
+  const lowerPath = reqPath.toLowerCase();
+
+  const routeMap = {
+    '/': 'index.html',
+    '/index.html': 'index.html',
+    '/index': 'index.html',
+    '/controller.html': 'controller.html',
+    '/controller': 'controller.html',
+    '/host.html': 'host.html',
+    '/host': 'host.html',
+    '/player.html': 'player.html',
+    '/player': 'player.html',
+    '/answer.html': 'answer.html',
+    '/answer': 'answer.html',
+    '/projector.html': 'projector.html',
+    '/projector': 'projector.html',
+  };
+
+  if (routeMap[lowerPath]) {
+    return res.sendFile(path.join(__dirname, routeMap[lowerPath]));
+  }
+
+  // Check if requested file matches any file in root directory case-insensitively
+  const targetName = lowerPath.startsWith('/') ? lowerPath.substring(1) : lowerPath;
+  if (targetName) {
+    try {
+      const files = fs.readdirSync(__dirname);
+      const match = files.find(f => f.toLowerCase() === targetName);
+      if (match) {
+        return res.sendFile(path.join(__dirname, match));
+      }
+    } catch (e) {}
+  }
+
+  next();
+});
+
 // Serve static files
 app.use(express.static(__dirname));
-
-// Friendly Route shortcuts
-app.get('/player', (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
-app.get('/answer', (req, res) => res.sendFile(path.join(__dirname, 'answer.html')));
-app.get('/projector', (req, res) => res.sendFile(path.join(__dirname, 'projector.html')));
-app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
-app.get('/controller', (req, res) => res.sendFile(path.join(__dirname, 'controller.html')));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -85,7 +119,13 @@ app.get('/api/health', (req, res) => {
 app.get('*', (req, res) => {
   const reqPath = req.path.substring(1);
   if (reqPath && (reqPath.endsWith('.html') || reqPath.endsWith('.png') || reqPath.endsWith('.mp3') || reqPath.endsWith('.wav') || reqPath.endsWith('.otf') || reqPath.endsWith('.ttf') || reqPath.endsWith('.js') || reqPath.endsWith('.css'))) {
-    return res.sendFile(path.join(__dirname, reqPath));
+    try {
+      const files = fs.readdirSync(__dirname);
+      const match = files.find(f => f.toLowerCase() === reqPath.toLowerCase());
+      if (match) {
+        return res.sendFile(path.join(__dirname, match));
+      }
+    } catch(e) {}
   }
   res.sendFile(path.join(__dirname, 'index.html'));
 });
