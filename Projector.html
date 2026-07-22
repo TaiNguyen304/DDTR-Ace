@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Projector</title>
+    <title>Projector - Money Drop</title>
+    <script src="network_sync.js"></script>
     <style>
         @font-face {
             font-family: 'LHF_Mono';
@@ -12,40 +13,39 @@
         * { font-weight: bold !important; box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Myriad Pro', Arial, sans-serif; }
         .projector-container { 
-            width: 1920px; height: 1080px; position: relative; margin: auto;
-            background-color: #000; overflow: hidden;
+            width: 100vw; height: 100vh; position: relative; margin: auto;
+            background-color: #000; overflow: hidden; display: flex; align-items: center; justify-content: center;
         }
-        .bg-main { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        .bg-outline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 90; pointer-events: none; }
+        .bg-main { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; object-fit: cover; }
+        .bg-outline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 90; pointer-events: none; object-fit: cover; }
 
         :root {
-            --q-center-top: 500px;
-            --q-moved-top: 380px; /* Câu hỏi dịch lên cao hơn một chút để nhường chỗ */
-            --ans-container-top: 530px;
-            --clock-top: 570px;   /* ĐẨY Ô ĐỒNG HỒ LÊN VỊ TRÍ CAO HƠN ĐỂ NẰM NGUYÊN TRONG KHUNG */
+            --q-center-top: 50%;
+            --q-moved-top: 35%;
+            --ans-container-top: 58%;
+            --clock-top: 62%;
         }
 
-        .strap-wrapper { position: absolute; left: 50%; transform: translateX(-50%); z-index: 5; width: 1000px; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        .strap-wrapper { position: absolute; left: 50%; transform: translateX(-50%); z-index: 5; width: 80%; max-width: 1000px; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
         .category-strap { width: 100%; height: auto; }
-        .strap-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 32px; font-weight: bold; pointer-events: none; font-family: 'Myriad Pro', sans-serif; }
+        .strap-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 32px; font-weight: bold; pointer-events: none; font-family: 'Myriad Pro', sans-serif; text-align: center; width: 90%; }
         .is-active { top: 50% !important; z-index: 20; transform: translate(-50%, -50%) scale(1.1); }
         .zoom-out { transform: translate(-50%, -50%) scale(0) !important; opacity: 0; }
 
         #central-box { 
-            position: absolute; top: var(--q-center-top); left: 50%; transform: translateX(-50%) scale(0); 
-            width: 1100px; max-height: 140px; z-index: 5; color: white; font-size: 40px; text-align: center; 
+            position: absolute; top: var(--q-center-top); left: 50%; transform: translate(-50%, -50%) scale(0); 
+            width: 85%; max-width: 1100px; max-height: 180px; z-index: 5; color: white; font-size: 40px; text-align: center; 
             transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; cursor: pointer; font-family: 'Myriad Pro', sans-serif; 
             display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-            word-wrap: break-word; line-height: 1.25;
+            word-wrap: break-word; line-height: 1.25; text-shadow: 0 4px 10px rgba(0,0,0,0.9);
         }
-        #central-box.show { transform: translateX(-50%) scale(1); opacity: 1; }
+        #central-box.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         #central-box.move-up { top: var(--q-moved-top); }
 
-        #answers-container { position: absolute; top: var(--ans-container-top); left: 50%; transform: translateX(-50%) scale(0); width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 5; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; }
+        #answers-container { position: absolute; top: var(--ans-container-top); left: 50%; transform: translateX(-50%) scale(0); width: 95%; max-width: 1400px; display: flex; justify-content: center; gap: 20px; z-index: 5; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; }
         #answers-container.show { transform: translateX(-50%) scale(1); opacity: 1; }
         
-        /* GIẢM CHIỀU CAO MẤY Ô ĐÁP ÁN XUỐNG MỘT CHÚT (Từ 150px xuống 110px) */
-        .ans-frame { width: 280px; height: 110px; position: relative; transition: all 0.5s ease; }
+        .ans-frame { width: 280px; height: 110px; position: relative; transition: all 0.5s ease; border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.6); }
         .ans-frame.dropped {
             filter: brightness(0.2) grayscale(0.8);
             opacity: 0.25;
@@ -56,233 +56,55 @@
             color: white; font-size: 22px; font-weight: bold; width: 100%; text-align: center; 
             display: flex; justify-content: center; align-items: center; padding: 0 10px; 
             box-sizing: border-box; pointer-events: none; font-family: 'Myriad Pro', sans-serif;
-            max-height: 100%; overflow: hidden; line-height: 1.2;
+            max-height: 100%; overflow: hidden; line-height: 1.2; text-shadow: 0 2px 5px #000;
         }
 
         /* --- CLOCK STYLES --- */
         #clock-container {
             position: absolute; top: var(--clock-top); left: 50%; transform: translateX(-50%) scale(0.75);
             width: 300px; height: 100px; z-index: 5; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0;
+            background: rgba(0,0,0,0.8); border: 2px solid #34495e; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
         }
         #clock-container.show { transform: translateX(-50%) scale(0.75); opacity: 1; }
-        #clock-bg { width: 100%; height: 100%; }
-        #clock-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 40px; font-weight: bold; font-family: 'LHF_Mono', 'LHF Mono', monospace; }
+        #clock-bg { width: 100%; height: 100%; object-fit: contain; }
+        #clock-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff3d00; font-size: 44px; font-weight: bold; font-family: 'LHF_Mono', 'LHF Mono', monospace; text-shadow: 0 0 10px rgba(255, 61, 0, 0.8); }
     </style>
 </head>
 <body>
 
     <div class="projector-container" onclick="unlockAudio()">
-        <img src="mainscreen.png" class="bg-main">
-        <img src="outlinescreen.png" class="bg-outline">
+        <img src="mainscreen.png" class="bg-main" onerror="this.style.display='none'">
+        <img src="outlinescreen.png" class="bg-outline" onerror="this.style.display='none'">
 
         <div id="audio-unlock-banner" style="position: absolute; top: 10px; right: 10px; z-index: 100; background: rgba(230, 126, 34, 0.9); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; display: none;">
-            🔊 Nhấp vào đây để BẬT ÂM THANH
+            🔊 Nhấp vào đây để BẬT ÂM THANH SÂN KHẤU
         </div>
 
         <div id="central-box" onclick="showAnswers()">CHỜ MC CHỌN CHỦ ĐỀ...</div>
 
         <div id="answers-container">
-            <div class="ans-frame" id="proj-frame-1"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-1">---</div></div>
-            <div class="ans-frame" id="proj-frame-2"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-2">---</div></div>
-            <div class="ans-frame" id="proj-frame-3"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-3">---</div></div>
-            <div class="ans-frame" id="proj-frame-4"><img src="indoor.png" class="ans-img"><div class="ans-text" id="proj-ans-4">---</div></div>
+            <div class="ans-frame" id="proj-frame-1"><img src="indoor.png" class="ans-img" onerror="this.style.background='#27ae60'"><div class="ans-text" id="proj-ans-1">---</div></div>
+            <div class="ans-frame" id="proj-frame-2"><img src="indoor.png" class="ans-img" onerror="this.style.background='#27ae60'"><div class="ans-text" id="proj-ans-2">---</div></div>
+            <div class="ans-frame" id="proj-frame-3"><img src="indoor.png" class="ans-img" onerror="this.style.background='#27ae60'"><div class="ans-text" id="proj-ans-3">---</div></div>
+            <div class="ans-frame" id="proj-frame-4"><img src="indoor.png" class="ans-img" onerror="this.style.background='#27ae60'"><div class="ans-text" id="proj-ans-4">---</div></div>
         </div>
 
         <div id="clock-container">
-            <img src="clock1.png" id="clock-bg">
+            <img src="clock1.png" id="clock-bg" onerror="this.style.display='none'">
             <div id="clock-time">1:00</div>
         </div>
 
-        <div class="strap-wrapper" style="top: 400px; display: none;" id="item-a" data-state="0" onclick="processClick(this)">
-            <img src="categorystrap.png" class="category-strap"><div class="strap-text">CHỦ ĐỀ A</div>
+        <div class="strap-wrapper" style="top: 38%; display: none;" id="item-a" data-state="0" onclick="processClick(this)">
+            <img src="categorystrap.png" class="category-strap" onerror="this.style.background='#34495e'"><div class="strap-text">CHỦ ĐỀ A</div>
         </div>
-        <div class="strap-wrapper" style="top: 550px; display: none;" id="item-b" data-state="0" onclick="processClick(this)">
-            <img src="categorystrap.png" class="category-strap"><div class="strap-text">CHỦ ĐỀ B</div>
+        <div class="strap-wrapper" style="top: 52%; display: none;" id="item-b" data-state="0" onclick="processClick(this)">
+            <img src="categorystrap.png" class="category-strap" onerror="this.style.background='#34495e'"><div class="strap-text">CHỦ ĐỀ B</div>
         </div>
     </div>
 
-    <!-- NỘI DUNG TỪ NETWORK_SYNC.JS ĐƯỢC NHÚNG TRỰC TIẾP -->
     <script>
-    (function () {
-        class GameSyncChannel {
-            constructor(channelName) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const customRoom = urlParams.get('room') || urlParams.get('channel');
-                
-                this.baseChannelName = channelName || 'gameshow_money_drop';
-                this.topicName = customRoom ? `${this.baseChannelName}_${customRoom}` : `${this.baseChannelName}_main_channel_v2`;
-                
-                this.localChannel = new BroadcastChannel(this.baseChannelName);
-                this.onmessageHandler = null;
-                this.instanceId = 'client_' + Math.random().toString(36).substring(2, 9);
-                this.mqttClient = null;
-                this.isConnected = false;
-                this.pendingQueue = [];
-
-                this.localChannel.onmessage = (event) => {
-                    if (event.data && event.data._senderId !== this.instanceId) {
-                        if (typeof this.onmessageHandler === 'function') {
-                            this.onmessageHandler(event);
-                        }
-                    }
-                };
-
-                this.initMqtt();
-            }
-
-            get onmessage() {
-                return this.onmessageHandler;
-            }
-
-            set onmessage(handler) {
-                this.onmessageHandler = handler;
-            }
-
-            initMqtt() {
-                if (typeof window.mqtt !== 'undefined') {
-                    this.connectBrokers();
-                    return;
-                }
-
-                const cdns = [
-                    'https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js',
-                    'https://cdn.jsdelivr.net/npm/mqtt@5.3.4/dist/mqtt.min.js',
-                    'https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js'
-                ];
-
-                let idx = 0;
-                const loadScript = () => {
-                    if (idx >= cdns.length) {
-                        return;
-                    }
-                    const s = document.createElement('script');
-                    s.src = cdns[idx++];
-                    s.onload = () => {
-                        this.connectBrokers();
-                    };
-                    s.onerror = () => loadScript();
-                    document.head.appendChild(s);
-                };
-                loadScript();
-            }
-
-            connectBrokers() {
-                if (!window.mqtt) return;
-
-                const brokers = [
-                    'wss://broker.emqx.io:8084/mqtt',
-                    'wss://broker.hivemq.com:8884/mqtt',
-                    'wss://test.mosquitto.org:8081/mqtt'
-                ];
-
-                let currentBrokerIdx = 0;
-
-                const tryConnect = () => {
-                    if (currentBrokerIdx >= brokers.length) return;
-                    const brokerUrl = brokers[currentBrokerIdx];
-
-                    try {
-                        this.mqttClient = window.mqtt.connect(brokerUrl, {
-                            clientId: 'gs_' + this.instanceId,
-                            keepalive: 30,
-                            clean: true,
-                            reconnectPeriod: 4000,
-                            connectTimeout: 6000
-                        });
-
-                        this.mqttClient.on('connect', () => {
-                            this.isConnected = true;
-                            
-                            this.mqttClient.subscribe(this.topicName, { qos: 0 }, (err) => {
-                                if (!err) {
-                                    this.flushQueue();
-                                    this.notifyConnectionStatus(true);
-                                    if (typeof this.onmessageHandler === 'function') {
-                                        this.onmessageHandler({ data: { action: 'mqtt_connected' } });
-                                    }
-                                }
-                            });
-                        });
-
-                        this.mqttClient.on('message', (topic, message) => {
-                            try {
-                                const payload = JSON.parse(message.toString());
-                                if (payload && payload._senderId !== this.instanceId) {
-                                    if (typeof this.onmessageHandler === 'function') {
-                                        this.onmessageHandler({ data: payload });
-                                    }
-                                }
-                            } catch (e) {}
-                        });
-
-                        this.mqttClient.on('error', (err) => {
-                            this.isConnected = false;
-                            this.notifyConnectionStatus(false);
-                            try { this.mqttClient.end(true); } catch(e){}
-                            currentBrokerIdx++;
-                            setTimeout(tryConnect, 1000);
-                        });
-
-                    } catch (e) {
-                        currentBrokerIdx++;
-                        setTimeout(tryConnect, 1000);
-                    }
-                };
-
-                tryConnect();
-            }
-
-            flushQueue() {
-                if (!this.mqttClient || !this.mqttClient.connected) return;
-                while (this.pendingQueue.length > 0) {
-                    const msg = this.pendingQueue.shift();
-                    try {
-                        this.mqttClient.publish(this.topicName, JSON.stringify(msg), { qos: 0 });
-                    } catch (e) {}
-                }
-            }
-
-            notifyConnectionStatus(online) {
-                const statusEls = document.querySelectorAll('.network-status-badge');
-                statusEls.forEach(el => {
-                    if (online) {
-                        el.style.color = '#00e676';
-                        el.innerText = '🟢 Trực tuyến (WebSockets Connected)';
-                    } else {
-                        el.style.color = '#ff5252';
-                        el.innerText = '🔴 Ngoại tuyến (Đang kết nối lại...)';
-                    }
-                });
-            }
-
-            postMessage(msg) {
-                if (!msg) return;
-                const payload = Object.assign({}, msg, { _senderId: this.instanceId, _timestamp: Date.now() });
-
-                try {
-                    this.localChannel.postMessage(payload);
-                } catch (e) {}
-
-                if (this.mqttClient && this.mqttClient.connected) {
-                    try {
-                        this.mqttClient.publish(this.topicName, JSON.stringify(payload), { qos: 0 });
-                    } catch (e) {
-                        this.pendingQueue.push(payload);
-                    }
-                } else {
-                    this.pendingQueue.push(payload);
-                    if (this.pendingQueue.length > 50) this.pendingQueue.shift();
-                }
-            }
-        }
-
-        window.GameSyncChannel = GameSyncChannel;
-    })();
-    </script>
-
-    <!-- LOGIC CHÍNH CỦA PROJECTOR -->
-    <script>
-        const channel = (typeof GameSyncChannel !== 'undefined') ? new GameSyncChannel('gameshow_money_drop') : new BroadcastChannel('gameshow_money_drop');
+        const channel = new GameSyncChannel('gameshow_money_drop');
         const timerAudio = new Audio("SFX/drop_timer.mp3");
         timerAudio.loop = false;
 
@@ -322,13 +144,10 @@
             const box = document.getElementById("central-box");
             box.innerText = text;
 
-            // Tự động điều chỉnh font chữ để tối đa 3 dòng và không bị tràn/đè lên đáp án
             let fontSize = 40;
             box.style.fontSize = fontSize + "px";
 
-            // Đo chiều cao tối đa của 3 dòng (khoảng 3 * fontSize * 1.25)
-            // Giảm cỡ chữ nếu chiều cao thực tế vượt quá 3 dòng hoặc vượt quá chiều cao tối đa
-            while ((box.scrollHeight > box.clientHeight || box.offsetHeight > 140) && fontSize > 20) {
+            while ((box.scrollHeight > box.clientHeight || box.offsetHeight > 180) && fontSize > 20) {
                 fontSize -= 2;
                 box.style.fontSize = fontSize + "px";
             }

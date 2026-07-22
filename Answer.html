@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Answer</title>
+    <title>Answer - Money Drop</title>
+    <script src="network_sync.js"></script>
     <style>
         @font-face {
             font-family: 'Myriad Pro';
@@ -283,188 +284,8 @@
         </div>
     </div>
 
-    <!-- NỘI DUNG TỪ NETWORK_SYNC.JS -->
     <script>
-        (function () {
-            class GameSyncChannel {
-                constructor(channelName) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const customRoom = urlParams.get('room') || urlParams.get('channel');
-
-                    this.baseChannelName = channelName || 'gameshow_money_drop';
-                    this.topicName = customRoom ? `${this.baseChannelName}_${customRoom}` : `${this.baseChannelName}_main_channel_v2`;
-
-                    this.localChannel = new BroadcastChannel(this.baseChannelName);
-                    this.onmessageHandler = null;
-                    this.instanceId = 'client_' + Math.random().toString(36).substring(2, 9);
-                    this.mqttClient = null;
-                    this.isConnected = false;
-                    this.pendingQueue = [];
-
-                    this.localChannel.onmessage = (event) => {
-                        if (event.data && event.data._senderId !== this.instanceId) {
-                            if (typeof this.onmessageHandler === 'function') {
-                                this.onmessageHandler(event);
-                            }
-                        }
-                    };
-
-                    this.initMqtt();
-                }
-
-                get onmessage() {
-                    return this.onmessageHandler;
-                }
-
-                set onmessage(handler) {
-                    this.onmessageHandler = handler;
-                }
-
-                initMqtt() {
-                    if (typeof window.mqtt !== 'undefined') {
-                        this.connectBrokers();
-                        return;
-                    }
-
-                    const cdns = [
-                        'https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js',
-                        'https://cdn.jsdelivr.net/npm/mqtt@5.3.4/dist/mqtt.min.js',
-                        'https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js'
-                    ];
-
-                    let idx = 0;
-                    const loadScript = () => {
-                        if (idx >= cdns.length) {
-                            return;
-                        }
-                        const s = document.createElement('script');
-                        s.src = cdns[idx++];
-                        s.onload = () => {
-                            this.connectBrokers();
-                        };
-                        s.onerror = () => loadScript();
-                        document.head.appendChild(s);
-                    };
-                    loadScript();
-                }
-
-                connectBrokers() {
-                    if (!window.mqtt) return;
-
-                    const brokers = [
-                        'wss://broker.emqx.io:8084/mqtt',
-                        'wss://broker.hivemq.com:8884/mqtt',
-                        'wss://test.mosquitto.org:8081/mqtt'
-                    ];
-
-                    let currentBrokerIdx = 0;
-
-                    const tryConnect = () => {
-                        if (currentBrokerIdx >= brokers.length) return;
-                        const brokerUrl = brokers[currentBrokerIdx];
-
-                        try {
-                            this.mqttClient = window.mqtt.connect(brokerUrl, {
-                                clientId: 'gs_' + this.instanceId,
-                                keepalive: 30,
-                                clean: true,
-                                reconnectPeriod: 4000,
-                                connectTimeout: 6000
-                            });
-
-                            this.mqttClient.on('connect', () => {
-                                this.isConnected = true;
-
-                                this.mqttClient.subscribe(this.topicName, { qos: 0 }, (err) => {
-                                    if (!err) {
-                                        this.flushQueue();
-                                        this.notifyConnectionStatus(true);
-                                        if (typeof this.onmessageHandler === 'function') {
-                                            this.onmessageHandler({ data: { action: 'mqtt_connected' } });
-                                        }
-                                    }
-                                });
-                            });
-
-                            this.mqttClient.on('message', (topic, message) => {
-                                try {
-                                    const payload = JSON.parse(message.toString());
-                                    if (payload && payload._senderId !== this.instanceId) {
-                                        if (typeof this.onmessageHandler === 'function') {
-                                            this.onmessageHandler({ data: payload });
-                                        }
-                                    }
-                                } catch (e) { }
-                            });
-
-                            this.mqttClient.on('error', (err) => {
-                                this.isConnected = false;
-                                this.notifyConnectionStatus(false);
-                                try { this.mqttClient.end(true); } catch (e) { }
-                                currentBrokerIdx++;
-                                setTimeout(tryConnect, 1000);
-                            });
-
-                        } catch (e) {
-                            currentBrokerIdx++;
-                            setTimeout(tryConnect, 1000);
-                        }
-                    };
-
-                    tryConnect();
-                }
-
-                flushQueue() {
-                    if (!this.mqttClient || !this.mqttClient.connected) return;
-                    while (this.pendingQueue.length > 0) {
-                        const msg = this.pendingQueue.shift();
-                        try {
-                            this.mqttClient.publish(this.topicName, JSON.stringify(msg), { qos: 0 });
-                        } catch (e) { }
-                    }
-                }
-
-                notifyConnectionStatus(online) {
-                    const statusEls = document.querySelectorAll('.network-status-badge');
-                    statusEls.forEach(el => {
-                        if (online) {
-                            el.style.color = '#00e676';
-                            el.innerText = '🟢 Trực tuyến (WebSockets Connected)';
-                        } else {
-                            el.style.color = '#ff5252';
-                            el.innerText = '🔴 Ngoại tuyến (Đang kết nối lại...)';
-                        }
-                    });
-                }
-
-                postMessage(msg) {
-                    if (!msg) return;
-                    const payload = Object.assign({}, msg, { _senderId: this.instanceId, _timestamp: Date.now() });
-
-                    try {
-                        this.localChannel.postMessage(payload);
-                    } catch (e) { }
-
-                    if (this.mqttClient && this.mqttClient.connected) {
-                        try {
-                            this.mqttClient.publish(this.topicName, JSON.stringify(payload), { qos: 0 });
-                        } catch (e) {
-                            this.pendingQueue.push(payload);
-                        }
-                    } else {
-                        this.pendingQueue.push(payload);
-                        if (this.pendingQueue.length > 50) this.pendingQueue.shift();
-                    }
-                }
-            }
-
-            window.GameSyncChannel = GameSyncChannel;
-        })();
-    </script>
-
-    <!-- NỘI DUNG TỪ ANSWER.JS -->
-    <script>
-        const channel = (typeof GameSyncChannel !== 'undefined') ? new GameSyncChannel('gameshow_money_drop') : new BroadcastChannel('gameshow_money_drop');
+        const channel = new GameSyncChannel('gameshow_money_drop');
         let currentBets = { b1: 0, b2: 0, b3: 0, b4: 0 };
         let activeRound = 1;
 
@@ -521,9 +342,6 @@
                             surfaceEl.classList.add('wiped');
                         }
                     }
-                    break;
-
-                case 'timer_control':
                     break;
 
                 case 'change_round':
