@@ -30,7 +30,18 @@
             background-color: #000; overflow: hidden; display: flex; align-items: center; justify-content: center;
         }
         .bg-main { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; object-fit: cover; }
-        .bg-outline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 90; pointer-events: none; object-fit: cover; }
+        .bg-outline { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 99; 
+            pointer-events: none; 
+            box-sizing: border-box; 
+            border: 12px solid #ffffff; 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8); 
+        }
 
         :root {
             --q-center-top: 48%;
@@ -97,6 +108,183 @@
         #clock-container.show { transform: translateX(-50%) scale(0.6); opacity: 1; }
         #clock-bg { width: 100%; height: 100%; object-fit: contain; }
         #clock-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff3d00; font-size: 36px; font-weight: bold; font-family: 'LHF_Mono', 'LHF Mono', monospace; text-shadow: 0 0 10px rgba(255, 61, 0, 0.8); }
+
+        /* --- PROGRESS HUD OVERLAY --- */
+        #progress-hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 70;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: 0;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease-out, visibility 0.4s ease-out;
+        }
+        #progress-hud-overlay.show {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .progress-capsule {
+            position: relative;
+            width: 92%;
+            max-width: 1650px;
+            height: 430px;
+            background: radial-gradient(ellipse at center, #5c0f0f 0%, #300505 60%, #150202 100%);
+            border-radius: 215px;
+            border: 12px solid #d0d0d0;
+            box-shadow: 0 0 0 6px #4a4a4a, inset 0 0 55px rgba(0,0,0,0.85), 0 30px 70px rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 60px;
+            box-sizing: border-box;
+            transform: scale(2.5);
+            opacity: 0;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease-out;
+        }
+        #progress-hud-overlay.show .progress-capsule {
+            transform: scale(1);
+            opacity: 1;
+        }
+        #progress-hud-overlay.zoom-out .progress-capsule {
+            transform: scale(0);
+            opacity: 0;
+            transition: transform 0.5s ease-out, opacity 0.4s ease-out;
+        }
+
+        .progress-money-text {
+            color: #ffffff;
+            font-size: 88px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            text-shadow: 0 5px 20px rgba(0,0,0,0.9), 0 0 30px rgba(255,255,255,0.25);
+            margin-bottom: 24px;
+            font-family: 'Myriad Pro', Arial, sans-serif;
+            line-height: 1;
+        }
+
+        .progress-slots-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .progress-slot {
+            width: 110px;
+            height: 110px;
+            border-radius: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.7);
+            overflow: hidden;
+            font-family: 'Myriad Pro', Arial, sans-serif;
+            font-size: 60px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .progress-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .progress-slot .slot-number {
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.85);
+        }
+
+        .progress-slot.played-slot {
+            background: #ffffff;
+            border: 4px solid #ffffff;
+        }
+
+        .progress-slot.unplay-slot {
+            background: linear-gradient(180deg, #c0292b 0%, #7a0909 100%);
+            border: 4px solid #e74c3c;
+            box-shadow: inset 0 4px 8px rgba(255,255,255,0.4), 0 10px 22px rgba(0,0,0,0.7);
+        }
+
+        .progress-gauge-icon {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #2a2a2a 0%, #111111 80%);
+            border: 6px solid #d0d0d0;
+            box-shadow: inset 0 0 14px #000, 0 8px 18px rgba(0,0,0,0.8);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* --- WINNING MONEY OVERLAY (BLACK SCREEN WITH OUTLINE FRAME & SAME-DIRECTION ZOOM ANIMATION) --- */
+        #winning-money-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            z-index: 85;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease-out, visibility 0.4s ease-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #winning-money-overlay.show {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        #winning-money-overlay.zoom-out {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-out 0.1s, visibility 0.5s ease-out 0.1s;
+        }
+        #winning-money-text {
+            font-family: 'Myriad Pro', Arial, sans-serif;
+            font-size: 110px;
+            font-weight: 900;
+            color: #ffea00;
+            letter-spacing: 2px;
+            text-shadow: 0 0 30px rgba(255, 234, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.9), 0 5px 25px rgba(0, 0, 0, 1), 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000;
+            white-space: nowrap;
+            text-align: center;
+            transform: scale(2.8);
+            opacity: 0;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease-out;
+        }
+        #winning-money-overlay.show #winning-money-text {
+            transform: scale(1);
+            opacity: 1;
+        }
+        #winning-money-overlay.zoom-out #winning-money-text {
+            transform: scale(0);
+            opacity: 0;
+            transition: transform 0.5s ease-out, opacity 0.4s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -104,6 +292,21 @@
     <div class="projector-container" onclick="unlockAudio()">
         <img src="mainscreen.png" class="bg-main" onerror="this.style.display='none'">
         <img src="outlinescreen.png" class="bg-outline" onerror="this.style.display='none'">
+
+        <!-- Progress HUD Overlay -->
+        <div id="progress-hud-overlay">
+            <div class="progress-capsule">
+                <div class="progress-money-text" id="prog-money-val">1.000.000 $A</div>
+                <div class="progress-slots-row" id="prog-slots-container">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Winning Money Overlay (Center Screen) -->
+        <div id="winning-money-overlay">
+            <div id="winning-money-text">0 $A</div>
+        </div>
 
         <div id="central-box" onclick="showAnswers()">CHỜ MC CHỌN CHỦ ĐỀ...</div>
 
@@ -235,6 +438,8 @@
         let activeSfxAudio = null;
         let clickCount = 0; 
         let isAudioUnlocked = false;
+        let progTimeout = null;
+        let winTimeout = null;
 
         function unlockAudio() {
             if (!isAudioUnlocked) {
@@ -299,6 +504,8 @@
             }
         }
 
+        let clockHideTimeout = null;
+
         function stopAllSfxOnProjector() {
             if (activeSfxAudio) {
                 activeSfxAudio.pause();
@@ -315,6 +522,7 @@
             const bgMain = document.querySelector('.bg-main');
             if (bgMain) {
                 bgMain.src = "mainscreen.png";
+                bgMain.classList.remove('hide');
             }
 
             document.getElementById("item-a").style.display = "none";
@@ -328,7 +536,21 @@
 
             document.getElementById("central-box").classList.remove("show", "move-up");
             document.getElementById("answers-container").classList.remove("show");
+
+            if (clockHideTimeout) {
+                clearTimeout(clockHideTimeout);
+                clockHideTimeout = null;
+            }
             document.getElementById("clock-container").classList.remove("show");
+
+            const hudElReset = document.getElementById("progress-hud-overlay");
+            if (hudElReset) hudElReset.classList.remove("show");
+
+            const winOverlayReset = document.getElementById("winning-money-overlay");
+            if (winOverlayReset) {
+                winOverlayReset.classList.remove("show");
+                winOverlayReset.classList.remove("zoom-out");
+            }
 
             currentRound = 1;
             adjustQuestionFontSize("CHỜ MC CHỌN CHỦ ĐỀ...");
@@ -367,10 +589,117 @@
                     resetBigscreen();
                     break;
 
+                case "show_progress":
+                    if (progTimeout) clearTimeout(progTimeout);
+
+                    // Hide clock when progress is shown
+                    const clockEl = document.getElementById('clock-container');
+                    if (clockEl) clockEl.classList.remove('show');
+                    if (clockHideTimeout) {
+                        clearTimeout(clockHideTimeout);
+                        clockHideTimeout = null;
+                    }
+
+                    const moneyValEl = document.getElementById('prog-money-val');
+                    if (moneyValEl && data && data.totalMoneyText) {
+                        moneyValEl.innerText = data.totalMoneyText;
+                    }
+
+                    const slotsContainer = document.getElementById('prog-slots-container');
+                    if (slotsContainer && data && Array.isArray(data.questionStates)) {
+                        slotsContainer.innerHTML = '';
+                        const qStates = data.questionStates;
+                        
+                        for (let i = 0; i < qStates.length; i++) {
+                            const isPlayed = qStates[i];
+                            const slotDiv = document.createElement('div');
+                            
+                            if (isPlayed) {
+                                slotDiv.className = 'progress-slot played-slot';
+                                slotDiv.innerHTML = `
+                                    <img src="played.png" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';" alt="Played">
+                                    <div class="fallback-bundle" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:#fff;">
+                                        <svg width="48" height="38" viewBox="0 0 50 40">
+                                            <rect x="5" y="10" width="40" height="24" rx="3" fill="#27ae60" stroke="#1e824c" stroke-width="2"/>
+                                            <rect x="20" y="10" width="10" height="24" fill="#e74c3c"/>
+                                            <circle cx="25" cy="22" r="5" fill="#f1c40f"/>
+                                        </svg>
+                                    </div>
+                                `;
+                            } else {
+                                slotDiv.className = 'progress-slot unplay-slot';
+                                slotDiv.innerHTML = `
+                                    <img src="unplay.png" onerror="this.onerror=null;this.style.display='none';" alt="Unplay">
+                                    <span class="slot-number">${i + 1}</span>
+                                `;
+                            }
+                            slotsContainer.appendChild(slotDiv);
+                        }
+                    }
+
+                    const hudEl = document.getElementById('progress-hud-overlay');
+                    if (hudEl) {
+                        hudEl.classList.remove('zoom-out');
+                        void hudEl.offsetWidth;
+                        hudEl.classList.add('show');
+                    }
+                    break;
+
+                case "hide_progress":
+                    const hudElHide = document.getElementById('progress-hud-overlay');
+                    if (hudElHide) {
+                        hudElHide.classList.add('zoom-out');
+                        hudElHide.classList.remove('show');
+                        progTimeout = setTimeout(() => {
+                            hudElHide.classList.remove('zoom-out');
+                        }, 550);
+                    }
+                    break;
+
+                case "show_winning_money":
+                    if (winTimeout) clearTimeout(winTimeout);
+
+                    const winTextEl = document.getElementById('winning-money-text');
+                    if (winTextEl && data) {
+                        if (data.moneyText) {
+                            winTextEl.innerText = data.moneyText;
+                        } else if (data.money !== undefined) {
+                            winTextEl.innerText = `${data.money.toLocaleString('vi-VN')} $A`;
+                        }
+                    }
+                    const winOverlayShow = document.getElementById('winning-money-overlay');
+                    if (winOverlayShow) {
+                        winOverlayShow.classList.remove('zoom-out');
+                        void winOverlayShow.offsetWidth;
+                        winOverlayShow.classList.add('show');
+                    }
+                    const bgMainShow = document.querySelector('.bg-main');
+                    if (bgMainShow) bgMainShow.classList.add('hide');
+                    break;
+
+                case "hide_winning_money":
+                case "collect_winning":
+                    const winOverlayHide = document.getElementById('winning-money-overlay');
+                    if (winOverlayHide) {
+                        winOverlayHide.classList.add('zoom-out');
+                        winOverlayHide.classList.remove('show');
+                        winTimeout = setTimeout(() => {
+                            winOverlayHide.classList.remove('zoom-out');
+                        }, 550);
+                    }
+                    const bgMainHide = document.querySelector('.bg-main');
+                    if (bgMainHide) bgMainHide.classList.remove('hide');
+                    break;
+
                 case "open_door":
                     if (data && data.doorId) {
                         let frameId = data.doorId;
-                        if (currentRound === 8) {
+                        if (currentRound >= 5 && currentRound <= 7) {
+                            if (data.doorId === 1) frameId = 2;
+                            else if (data.doorId === 2) frameId = 3;
+                            else if (data.doorId === 3) frameId = 4;
+                            else frameId = null;
+                        } else if (currentRound === 8) {
                             if (data.doorId === 1) frameId = 2;
                             else if (data.doorId === 2) frameId = 3;
                             else frameId = null;
@@ -387,6 +716,20 @@
                 case "change_round":
                     if (data && data.round) {
                         currentRound = parseInt(data.round) || 1;
+                        if (currentRound === 8) {
+                            // Auto shift answers if they were previously placed in proj-ans-1/2
+                            const a1 = document.getElementById("proj-ans-1");
+                            const a2 = document.getElementById("proj-ans-2");
+                            const a3 = document.getElementById("proj-ans-3");
+                            if (a1 && a1.innerText && a1.innerText !== "---" && (!a3 || !a3.innerText || a3.innerText === "---")) {
+                                if (a3) a3.innerText = a2.innerText;
+                                if (a2) a2.innerText = a1.innerText;
+                                if (a1) a1.innerText = "---";
+                                if (a1) delete a1.dataset.hiddenByContent;
+                                if (a2) delete a2.dataset.hiddenByContent;
+                                if (a3) delete a3.dataset.hiddenByContent;
+                            }
+                        }
                         applyAnswerVisibility();
                     }
                     break;
@@ -474,15 +817,42 @@
                     break;
 
                 case "timer_control":
+                    const hudActive = document.getElementById("progress-hud-overlay")?.classList.contains("show");
                     if (data.status === "start") {
+                        if (clockHideTimeout) {
+                            clearTimeout(clockHideTimeout);
+                            clockHideTimeout = null;
+                        }
                         stopAllSfxOnProjector();
+                        const sfxFile = (currentRound === 8 || data.round === 8) ? "SFX/drop_timer_q8.mp3" : "SFX/drop_timer.mp3";
+                        timerAudio.src = sfxFile;
                         timerAudio.currentTime = 0;
-                        timerAudio.play().catch(e => {});
-                        document.getElementById("clock-container").classList.add("show");
-                    }
-                    if (data.status === "stop") {
+                        timerAudio.play().catch(e => console.log("Audio play blocked/failed:", e));
+                        if (!hudActive) document.getElementById("clock-container").classList.add("show");
+                    } else if (data.status === "add30") {
+                        if (clockHideTimeout) {
+                            clearTimeout(clockHideTimeout);
+                            clockHideTimeout = null;
+                        }
+                        if (!hudActive) document.getElementById("clock-container").classList.add("show");
+                    } else if (data.status === "stop") {
                         timerAudio.pause();
                         timerAudio.currentTime = 0;
+                        if (clockHideTimeout) {
+                            clearTimeout(clockHideTimeout);
+                        }
+                        clockHideTimeout = setTimeout(() => {
+                            document.getElementById("clock-container").classList.remove("show");
+                            clockHideTimeout = null;
+                        }, 3000);
+                    } else if (data.status === "timeout") {
+                        if (clockHideTimeout) {
+                            clearTimeout(clockHideTimeout);
+                        }
+                        clockHideTimeout = setTimeout(() => {
+                            document.getElementById("clock-container").classList.remove("show");
+                            clockHideTimeout = null;
+                        }, 3000);
                     }
                     break;
             }

@@ -335,6 +335,113 @@
             justify-content: center;
             z-index: 99999;
             opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        /* TAB BAR STYLING */
+        .tab-bar {
+            display: flex;
+            gap: 10px;
+            background: #18191a;
+            padding: 8px 12px;
+            border-bottom: 2px solid #3a3b3c;
+            margin-bottom: 12px;
+        }
+        .tab-button {
+            background: #242526;
+            color: #b0b3b8;
+            border: 1px solid #3a3b3c;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: auto;
+        }
+        .tab-button:hover {
+            background: #3a3b3c;
+            color: #ffffff;
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #1877f2, #0052d4);
+            color: #ffffff;
+            border-color: #2e89ff;
+            box-shadow: 0 4px 10px rgba(24, 119, 242, 0.4);
+        }
+
+        /* PROGRESS DASHBOARD STYLING */
+        .progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 12px;
+        }
+        .progress-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .progress-stat-card {
+            background: #242526;
+            border: 1px solid #3a3b3c;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+        .progress-stat-card .stat-title {
+            color: #b0b3b8;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .progress-stat-card .stat-value {
+            color: #ffcc00;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .questions-status-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .q-status-btn {
+            padding: 14px 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #4e4f50;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            background: #1c1e21;
+            color: #fff;
+        }
+        .q-status-btn.played {
+            background: #27ae60 !important;
+            border-color: #2ecc71 !important;
+            color: white !important;
+            box-shadow: 0 0 8px rgba(39, 174, 96, 0.5);
+        }
+        .q-status-btn.unplay {
+            background: #c0392b !important;
+            border-color: #e74c3c !important;
+            color: white !important;
+        }
+        .q-status-btn:hover {
+            transform: translateY(-2px);
+        }
+            z-index: 99999;
+            opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
         }
@@ -403,6 +510,14 @@
 
     <header>
         <h1>🎮 Controller <span class="header-badge">Money Drop</span></h1>
+        
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <a href="Controller.html" id="link-controller" class="btn-blue" style="text-decoration: none; padding: 4px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center;">🎛️ Controller</a>
+            <a href="Host.html" id="link-host" target="_blank" class="btn-purple" style="text-decoration: none; padding: 4px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center;">🎤 Host</a>
+            <a href="Login.html" id="link-player" target="_blank" class="btn-orange" style="text-decoration: none; padding: 4px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center;">📱 Player</a>
+            <a href="Answer.html" id="link-answer" target="_blank" class="btn-blue" style="text-decoration: none; padding: 4px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center;">🚪 Answer</a>
+            <a href="Projector.html" id="link-projector" target="_blank" class="btn-purple" style="text-decoration: none; padding: 4px 8px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center;">🖥️ Projector</a>
+        </div>
 
         <div class="header-room-bar" style="display: flex; gap: 10px; align-items: center; background: #1c1e21; padding: 6px 12px; border-radius: 6px; border: 1px solid #3a3b3c; flex-wrap: wrap;">
             <div style="font-weight: bold; color: #2ecc71; font-size: 13px; display: flex; align-items: center; gap: 6px;">
@@ -418,7 +533,12 @@
         <div id="sfx-status" style="font-weight: bold; color: #f39c12; font-size: 12px;">Sẵn sàng phát âm thanh</div>
     </header>
 
-    <div class="dashboard-container">
+    <div class="tab-bar">
+        <button class="tab-button active" id="tab-btn-main" onclick="switchControllerTab('main')">🎮 BÀN ĐIỀU KHIỂN CHÍNH</button>
+        <button class="tab-button" id="tab-btn-progress" onclick="switchControllerTab('progress')">📊 TIẾN TRÌNH CHƠI</button>
+    </div>
+
+    <div id="main-dashboard" class="dashboard-container">
         <!-- COLUMN 1: CONTENT & QUESTIONS -->
         <div class="panel">
             <div class="panel-title">1. NẠP DỮ LIỆU & NỘI DUNG</div>
@@ -583,7 +703,8 @@
                 <button class="btn-orange" onclick="playSfx('SFX/drop_timer_stop.mp3')">🛑 Dừng Thời Gian</button>
                 <button class="btn-red" onclick="playSfx('SFX/drop_trapdoor_1.mp3')">💥 Sập Hố 1</button>
                 <button class="btn-red" onclick="playSfx('SFX/drop_trapdoor_2.mp3.mp3')">💥 Sập Hố 2</button>
-                <button style="background: #27ae60;" onclick="playSfx('SFX/drop_win.mp3')">🏆 Chiến Thắng</button>
+                <button style="background: #27ae60;" onclick="playSfx('SFX/drop_win.mp3'); showWinningMoneyOnProjector();">🏆 Chiến Thắng</button>
+                <button class="btn-blue" onclick="collectMoneyBack()">💵 Thu Tiền Về</button>
                 <button class="btn-red" onclick="playSfx('SFX/drop_lose.mp3')">❌ Thua Cuộc</button>
                 <button class="btn-purple" onclick="playSfx('SFX/drop_commercial_in.mp3')">📺 Quảng Cáo Vào</button>
                 <button class="btn-purple" onclick="playSfx('SFX/drop_commercial_out.mp3')">📺 Quảng Cáo Ra</button>
@@ -626,6 +747,54 @@
                     <button class="btn-blue" style="width: 80px; flex-shrink: 0;" onclick="playCustomSfx()">Phát</button>
                     <button class="btn-red" style="width: 70px; flex-shrink: 0;" onclick="stopSfx()">Tắt</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROGRESS DASHBOARD -->
+    <div id="progress-dashboard" class="progress-container" style="display: none;">
+        <div class="progress-card-grid">
+            <div class="progress-stat-card">
+                <div class="stat-title">SỐ CÂU HỎI ĐÃ TRẢI QUA</div>
+                <div class="stat-value" id="ctrl-played-text">2 / 8</div>
+            </div>
+            <div class="progress-stat-card">
+                <div class="stat-title">SỐ CÂU HỎI CÒN LẠI</div>
+                <div class="stat-value" id="ctrl-remaining-text" style="color: #2e89ff;">6 câu</div>
+            </div>
+            <div class="progress-stat-card">
+                <div class="stat-title">SỐ TIỀN HIỆN CÓ</div>
+                <div class="stat-value" id="ctrl-money-text" style="color: #2ecc71;">1.000.000 $A</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">1. TRẠNG THÁI CÁC CÂU HỎI (CÂU 1 - 8)</div>
+            <div style="font-size: 12px; color: #b0b3b8; margin-bottom: 8px;">* Bấm vào từng nút câu hỏi để chuyển trạng thái Đã chơi (Xanh) / Chưa chơi (Đỏ)</div>
+            <div id="questions-status-grid" class="questions-status-grid">
+                <!-- Rendered dynamically by JS -->
+            </div>
+            
+            <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-orange" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(0)">Reset (0 câu)</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(1)">1 câu</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(2)">2 câu</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(3)">3 câu</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(4)">4 câu</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(5)">5 câu</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(6)">6 câu</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(7)">7 câu</button>
+                <button class="btn-blue" style="width: auto; padding: 6px 12px;" onclick="setPlayedCount(8)">8 câu</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">2. ĐIỀU KHIỂN HIỂN THỊ MÀN HÌNH PROJECTOR</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                <button class="btn-purple" style="padding: 12px; font-size: 13px;" onclick="showProgressOnProjector()">🚀 HIỂN THỊ TIẾN TRÌNH TRÊN PROJECTOR</button>
+                <button class="btn-red" style="padding: 12px; font-size: 13px;" onclick="hideProgressOnProjector()">🛑 ẨN MÀN HÌNH TIẾN TRÌNH</button>
+                <button style="background: #27ae60; color: white; padding: 12px; font-size: 13px;" onclick="showWinningMoneyOnProjector()">🏆 HIỂN THỊ TIỀN THẮNG (PROJECTOR)</button>
+                <button class="btn-red" style="padding: 12px; font-size: 13px;" onclick="hideWinningMoneyOnProjector()">🛑 ẨN TIỀN THẮNG</button>
             </div>
         </div>
     </div>
@@ -841,6 +1010,127 @@
         bindChannelEvents();
     }
 
+    let totalQuestionsCount = 8;
+    let questionStates = [true, true, false, false, false, false, false, false];
+    let currentMoneyAmount = 1000000;
+    let isProgressShowingOnProjector = false;
+
+    function switchControllerTab(tabName) {
+        const btnMain = document.getElementById('tab-btn-main');
+        const btnProgress = document.getElementById('tab-btn-progress');
+        const dashMain = document.getElementById('main-dashboard');
+        const dashProgress = document.getElementById('progress-dashboard');
+
+        if (tabName === 'progress') {
+            btnMain.classList.remove('active');
+            btnProgress.classList.add('active');
+            dashMain.style.display = 'none';
+            dashProgress.style.display = 'flex';
+            updateProgressDataUI();
+        } else {
+            btnProgress.classList.remove('active');
+            btnMain.classList.add('active');
+            dashProgress.style.display = 'none';
+            dashMain.style.display = 'grid';
+        }
+    }
+
+    function updateProgressDataUI() {
+        let playedCount = 0;
+        for (let i = 0; i < questionStates.length; i++) {
+            if (questionStates[i]) playedCount++;
+        }
+        let remainingCount = totalQuestionsCount - playedCount;
+
+        const playedTextEl = document.getElementById('ctrl-played-text');
+        if (playedTextEl) playedTextEl.innerText = `${playedCount} / ${totalQuestionsCount}`;
+
+        const remTextEl = document.getElementById('ctrl-remaining-text');
+        if (remTextEl) remTextEl.innerText = `${remainingCount} câu`;
+
+        const moneyTextEl = document.getElementById('ctrl-money-text');
+        if (moneyTextEl) moneyTextEl.innerText = `${currentMoneyAmount.toLocaleString('vi-VN')} $A`;
+
+        const gridContainer = document.getElementById('questions-status-grid');
+        if (gridContainer) {
+            gridContainer.innerHTML = '';
+            for (let i = 0; i < totalQuestionsCount; i++) {
+                const isPlayed = questionStates[i];
+                const btn = document.createElement('button');
+                btn.className = `q-status-btn ${isPlayed ? 'played' : 'unplay'}`;
+                btn.onclick = () => toggleQuestionStatus(i);
+                btn.innerHTML = `
+                    <div>CÂU ${i + 1}</div>
+                    <div style="font-size: 11px; opacity: 0.9;">${isPlayed ? '✓ ĐÃ CHƠI' : '✗ CHƯA CHƠI'}</div>
+                `;
+                gridContainer.appendChild(btn);
+            }
+        }
+
+        if (isProgressShowingOnProjector) {
+            showProgressOnProjector();
+        }
+    }
+
+    function toggleQuestionStatus(index) {
+        if (index >= 0 && index < questionStates.length) {
+            questionStates[index] = !questionStates[index];
+            updateProgressDataUI();
+        }
+    }
+
+    function setPlayedCount(count) {
+        for (let i = 0; i < questionStates.length; i++) {
+            questionStates[i] = (i < count);
+        }
+        updateProgressDataUI();
+    }
+
+    function showProgressOnProjector() {
+        isProgressShowingOnProjector = true;
+        channel.postMessage({
+            action: 'show_progress',
+            data: {
+                totalMoneyText: `${currentMoneyAmount.toLocaleString('vi-VN')} $A`,
+                questionStates: questionStates
+            }
+        });
+        showPopup('Đã phát lệnh hiển thị Màn hình Tiến trình lên Projector!');
+    }
+
+    function hideProgressOnProjector() {
+        isProgressShowingOnProjector = false;
+        channel.postMessage({
+            action: 'hide_progress'
+        });
+        showPopup('Đã ẩn Màn hình Tiến trình trên Projector!');
+    }
+
+    function showWinningMoneyOnProjector() {
+        channel.postMessage({
+            action: 'show_winning_money',
+            data: {
+                money: currentMoneyAmount,
+                moneyText: `${currentMoneyAmount.toLocaleString('vi-VN')} $A`
+            }
+        });
+        showPopup(`Đã hiển thị Số tiền thắng (${currentMoneyAmount.toLocaleString('vi-VN')} $A) lên Projector!`);
+    }
+
+    function hideWinningMoneyOnProjector() {
+        channel.postMessage({
+            action: 'hide_winning_money'
+        });
+        showPopup('Đã ẩn Số tiền thắng trên Projector!');
+    }
+
+    function collectMoneyBack() {
+        channel.postMessage({
+            action: 'collect_winning'
+        });
+        showPopup('Đã thu tiền về thành công!');
+    }
+
     function bindChannelEvents() {
         if (!channel) return;
         channel.onmessage = function(event) {
@@ -857,6 +1147,7 @@
                 document.getElementById('mc-bet-4').innerText = b4.toLocaleString('vi-VN') + " $A";
 
                 if (data.totalMoney !== undefined && data.totalStacks !== undefined) {
+                    currentMoneyAmount = data.totalMoney;
                     const moneyEl = document.getElementById('mc-total-money');
                     if (moneyEl) {
                         moneyEl.innerText = `${data.totalMoney.toLocaleString('vi-VN')} $A (${data.totalStacks} cọc)`;
@@ -865,6 +1156,8 @@
                     if (inputEl && document.activeElement !== inputEl) {
                         inputEl.value = data.totalStacks;
                     }
+                    const moneyTextEl = document.getElementById('ctrl-money-text');
+                    if (moneyTextEl) moneyTextEl.innerText = `${currentMoneyAmount.toLocaleString('vi-VN')} $A`;
                 }
             }
         };
