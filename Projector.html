@@ -3,7 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>Projector - Money Drop</title>
-    <script src="network_sync.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
+                (e.ctrlKey && ['U','u','S','s'].includes(e.key))
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
     <style>
         @font-face {
             font-family: 'LHF_Mono';
@@ -20,32 +33,46 @@
         .bg-outline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 90; pointer-events: none; object-fit: cover; }
 
         :root {
-            --q-center-top: 50%;
-            --q-moved-top: 35%;
-            --ans-container-top: 58%;
-            --clock-top: 62%;
+            --q-center-top: 48%;
+            --q-moved-top: 40%;
+            --ans-container-top: 48%;
+            --clock-top: 56.5%;
         }
 
-        .strap-wrapper { position: absolute; left: 50%; transform: translateX(-50%); z-index: 5; width: 80%; max-width: 1000px; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
-        .category-strap { width: 100%; height: auto; }
-        .strap-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 32px; font-weight: bold; pointer-events: none; font-family: 'Myriad Pro', sans-serif; text-align: center; width: 90%; }
-        .is-active { top: 50% !important; z-index: 20; transform: translate(-50%, -50%) scale(1.1); }
+        .strap-wrapper { 
+            position: absolute; left: 50%; transform: translate(-50%, -50%); 
+            z-index: 10; width: 44%; max-width: 620px; 
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; 
+        }
+        .category-strap { width: 100%; height: auto; display: block; }
+        .strap-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; font-weight: bold; pointer-events: none; font-family: 'Myriad Pro', sans-serif; text-align: center; width: 90%; }
+        .is-active { top: 48% !important; z-index: 20; transform: translate(-50%, -50%) scale(1.05); }
         .zoom-out { transform: translate(-50%, -50%) scale(0) !important; opacity: 0; }
 
         #central-box { 
             position: absolute; top: var(--q-center-top); left: 50%; transform: translate(-50%, -50%) scale(0); 
-            width: 85%; max-width: 1100px; max-height: 180px; z-index: 5; color: white; font-size: 40px; text-align: center; 
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; cursor: pointer; font-family: 'Myriad Pro', sans-serif; 
+            width: 60%; max-width: 820px; max-height: 80px; z-index: 30; 
+            color: #ffffff !important; font-size: 24px; font-weight: 900 !important; text-align: center; 
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; cursor: pointer; font-family: 'Myriad Pro', sans-serif; 
             display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-            word-wrap: break-word; line-height: 1.25; text-shadow: 0 4px 10px rgba(0,0,0,0.9);
+            word-wrap: break-word; line-height: 1.25;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.9);
         }
         #central-box.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         #central-box.move-up { top: var(--q-moved-top); }
 
-        #answers-container { position: absolute; top: var(--ans-container-top); left: 50%; transform: translateX(-50%) scale(0); width: 95%; max-width: 1400px; display: flex; justify-content: center; gap: 20px; z-index: 5; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; }
+        #answers-container { 
+            position: absolute; top: var(--ans-container-top); left: 50%; transform: translateX(-50%) scale(0); 
+            width: 60%; max-width: 820px; display: flex; justify-content: center; gap: 10px; z-index: 25; 
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; 
+        }
         #answers-container.show { transform: translateX(-50%) scale(1); opacity: 1; }
         
-        .ans-frame { width: 280px; height: 110px; position: relative; transition: all 0.5s ease; border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.6); }
+        .ans-frame { 
+            flex: 1; max-width: 190px; height: 58px; position: relative; transition: all 0.5s ease; 
+            border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.88); border: 2px solid #334155;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
         .ans-frame.dropped {
             filter: brightness(0.2) grayscale(0.8);
             opacity: 0.25;
@@ -53,22 +80,23 @@
         .ans-img { width: 100%; height: 100%; object-fit: fill; }
         .ans-text { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            color: white; font-size: 22px; font-weight: bold; width: 100%; text-align: center; 
-            display: flex; justify-content: center; align-items: center; padding: 0 10px; 
+            color: white; font-size: 18px; font-weight: bold; width: 100%; text-align: center; 
+            display: flex; justify-content: center; align-items: center; padding: 0 8px; 
             box-sizing: border-box; pointer-events: none; font-family: 'Myriad Pro', sans-serif;
-            max-height: 100%; overflow: hidden; line-height: 1.2; text-shadow: 0 2px 5px #000;
+            max-height: 100%; overflow: hidden; line-height: 1.15; text-shadow: 0 2px 4px #000;
         }
 
         /* --- CLOCK STYLES --- */
         #clock-container {
-            position: absolute; top: var(--clock-top); left: 50%; transform: translateX(-50%) scale(0.75);
-            width: 300px; height: 100px; z-index: 5; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0;
-            background: rgba(0,0,0,0.8); border: 2px solid #34495e; border-radius: 12px;
+            position: absolute; top: var(--clock-top); left: 50%; transform: translateX(-50%) scale(0.6);
+            width: 220px; height: 68px; z-index: 30; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0;
+            background: rgba(0,0,0,0.92); border: 2px solid #34495e; border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
-        #clock-container.show { transform: translateX(-50%) scale(0.75); opacity: 1; }
+        #clock-container.show { transform: translateX(-50%) scale(0.6); opacity: 1; }
         #clock-bg { width: 100%; height: 100%; object-fit: contain; }
-        #clock-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff3d00; font-size: 44px; font-weight: bold; font-family: 'LHF_Mono', 'LHF Mono', monospace; text-shadow: 0 0 10px rgba(255, 61, 0, 0.8); }
+        #clock-time { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff3d00; font-size: 36px; font-weight: bold; font-family: 'LHF_Mono', 'LHF Mono', monospace; text-shadow: 0 0 10px rgba(255, 61, 0, 0.8); }
     </style>
 </head>
 <body>
@@ -76,10 +104,6 @@
     <div class="projector-container" onclick="unlockAudio()">
         <img src="mainscreen.png" class="bg-main" onerror="this.style.display='none'">
         <img src="outlinescreen.png" class="bg-outline" onerror="this.style.display='none'">
-
-        <div id="audio-unlock-banner" style="position: absolute; top: 10px; right: 10px; z-index: 100; background: rgba(230, 126, 34, 0.9); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; display: none;">
-            🔊 Nhấp vào đây để BẬT ÂM THANH SÂN KHẤU
-        </div>
 
         <div id="central-box" onclick="showAnswers()">CHỜ MC CHỌN CHỦ ĐỀ...</div>
 
@@ -95,16 +119,116 @@
             <div id="clock-time">1:00</div>
         </div>
 
-        <div class="strap-wrapper" style="top: 38%; display: none;" id="item-a" data-state="0" onclick="processClick(this)">
+        <div class="strap-wrapper" style="top: 42.5%; display: none;" id="item-a" data-state="0" onclick="processClick(this)">
             <img src="categorystrap.png" class="category-strap" onerror="this.style.background='#34495e'"><div class="strap-text">CHỦ ĐỀ A</div>
         </div>
-        <div class="strap-wrapper" style="top: 52%; display: none;" id="item-b" data-state="0" onclick="processClick(this)">
+        <div class="strap-wrapper" style="top: 53.5%; display: none;" id="item-b" data-state="0" onclick="processClick(this)">
             <img src="categorystrap.png" class="category-strap" onerror="this.style.background='#34495e'"><div class="strap-text">CHỦ ĐỀ B</div>
         </div>
     </div>
 
     <script>
-        const channel = new GameSyncChannel('gameshow_money_drop');
+        const LOCAL_SERVER_URL = "http://localhost:3000";
+        const RENDER_SERVER_URL = "https://ddtr-ace.onrender.com";
+        const SERVER_URL = (typeof window !== 'undefined' && window.location.protocol.startsWith('http') && window.location.host) 
+            ? window.location.origin 
+            : RENDER_SERVER_URL;
+
+        class GameSyncChannel {
+            constructor(channelName = 'gameshow_money_drop', serverUrl = RENDER_SERVER_URL) {
+                this.channelName = channelName;
+                this.onmessage = null;
+                this.lastMsgId = null;
+
+                if (typeof window !== 'undefined' && window.BroadcastChannel) {
+                    try {
+                        this.bc = new BroadcastChannel(this.channelName);
+                        this.bc.onmessage = (event) => {
+                            if (!event || !event.data) return;
+                            if (event.data._msgId && event.data._msgId === this.lastMsgId) return;
+                            if (event.data._msgId) this.lastMsgId = event.data._msgId;
+                            if (typeof this.onmessage === 'function') {
+                                this.onmessage(event);
+                            }
+                        };
+                    } catch(e) {
+                        console.warn('BroadcastChannel error:', e);
+                    }
+                }
+
+                let targetUrl = (typeof window !== 'undefined' && window.location.protocol.startsWith('http') && window.location.host)
+                    ? window.location.origin 
+                    : RENDER_SERVER_URL;
+
+                if (serverUrl && serverUrl.startsWith('http')) {
+                    targetUrl = serverUrl;
+                }
+
+                try {
+                    this.socket = io(targetUrl, {
+                        transports: ['websocket', 'polling'],
+                        reconnection: true,
+                        reconnectionAttempts: Infinity,
+                        reconnectionDelay: 1000
+                    });
+
+                    this.socket.on('connect', () => {
+                        console.log('[Socket.IO Projector] Connected to server:', this.socket.id);
+                        this.socket.emit('join_room', this.channelName);
+                        if (typeof this.onmessage === 'function') {
+                            this.onmessage({ data: { action: 'socket_connected', data: { id: this.socket.id } } });
+                        }
+                    });
+
+                    this.socket.on('game_event', (msg) => {
+                        if (!msg) return;
+                        if (msg._msgId && msg._msgId === this.lastMsgId) return;
+                        if (msg._msgId) this.lastMsgId = msg._msgId;
+                        if (typeof this.onmessage === 'function') {
+                            this.onmessage({ data: msg });
+                        }
+                    });
+
+                    this.socket.on('disconnect', () => {
+                        console.log('[Socket.IO Projector] Disconnected');
+                    });
+                } catch(e) {
+                    console.warn('Socket.IO error:', e);
+                }
+            }
+
+            postMessage(msg) {
+                if (!msg) return;
+                if (!msg.room && !msg.topic) {
+                    msg.room = this.channelName;
+                }
+                if (!msg._msgId) {
+                    msg._msgId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+                }
+                this.lastMsgId = msg._msgId;
+
+                if (this.bc) {
+                    try { this.bc.postMessage(msg); } catch(e){}
+                }
+                if (this.socket) {
+                    this.socket.emit('game_event', msg);
+                }
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('roomid');
+
+        if (!roomParam || !roomParam.trim()) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0d1117;color:#ff4d4d;font-size:24px;font-weight:bold;display:flex;justify-content:center;align-items:center;z-index:999999;text-align:center;padding:20px;';
+                overlay.innerText = 'Bổ sung tham số ?roomid=Mã phòng vào link.';
+                document.body.appendChild(overlay);
+            });
+        }
+
+        const channel = new GameSyncChannel(roomParam || 'gameshow_money_drop', SERVER_URL);
         const timerAudio = new Audio("SFX/drop_timer.mp3");
         timerAudio.loop = false;
 
@@ -144,11 +268,11 @@
             const box = document.getElementById("central-box");
             box.innerText = text;
 
-            let fontSize = 40;
+            let fontSize = 24;
             box.style.fontSize = fontSize + "px";
 
-            while ((box.scrollHeight > box.clientHeight || box.offsetHeight > 180) && fontSize > 20) {
-                fontSize -= 2;
+            while ((box.scrollHeight > box.clientHeight || box.offsetHeight > 80) && fontSize > 13) {
+                fontSize -= 1;
                 box.style.fontSize = fontSize + "px";
             }
         }
@@ -225,6 +349,7 @@
         }
 
         channel.onmessage = function(event) {
+            if (!event || !event.data) return;
             const { action, data } = event.data;
 
             switch(action) {

@@ -4,7 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Host - Money Drop</title>
-    <script src="network_sync.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
+                (e.ctrlKey && ['U','u','S','s'].includes(e.key))
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
     <style>
         @font-face {
             font-family: 'LHF_Mono';
@@ -104,12 +117,174 @@
     </div>
 
     <script>
-        const channel = new GameSyncChannel('gameshow_money_drop');
+        const LOCAL_SERVER_URL = "http://localhost:3000";
+        const RENDER_SERVER_URL = "https://ddtr-ace.onrender.com";
+        const SERVER_URL = (typeof window !== 'undefined' && window.location.protocol.startsWith('http') && window.location.host) 
+            ? window.location.origin 
+            : RENDER_SERVER_URL;
+
+        class GameSyncChannel {
+            constructor(channelName = 'gameshow_money_drop', serverUrl = RENDER_SERVER_URL) {
+                this.channelName = channelName;
+                this.onmessage = null;
+                this.lastMsgId = null;
+
+                if (typeof window !== 'undefined' && window.BroadcastChannel) {
+                    try {
+                        this.bc = new BroadcastChannel(this.channelName);
+                        this.bc.onmessage = (event) => {
+                            if (!event || !event.data) return;
+                            if (event.data._msgId && event.data._msgId === this.lastMsgId) return;
+                            if (event.data._msgId) this.lastMsgId = event.data._msgId;
+                            if (typeof this.onmessage === 'function') {
+                                this.onmessage(event);
+                            }
+                        };
+                    } catch(e) {
+                        console.warn('BroadcastChannel error:', e);
+                    }
+                }
+
+                let targetUrl = (typeof window !== 'undefined' && window.location.protocol.startsWith('http') && window.location.host)
+                    ? window.location.origin 
+                    : RENDER_SERVER_URL;
+
+                if (serverUrl && serverUrl.startsWith('http')) {
+                    targetUrl = serverUrl;
+                }
+
+                try {
+                    this.socket = io(targetUrl, {
+                        transports: ['websocket', 'polling'],
+                        reconnection: true,
+                        reconnectionAttempts: Infinity,
+                        reconnectionDelay: 1000
+                    });
+
+                    this.socket.on('connect', () => {
+                        console.log('[Socket.IO Host] Connected to server:', this.socket.id);
+                        this.socket.emit('join_room', this.channelName);
+                        if (typeof this.onmessage === 'function') {
+                            this.onmessage({ data: { action: 'socket_connected', data: { id: this.socket.id } } });
+                        }
+                    });
+
+                    this.socket.on('game_event', (msg) => {
+                        if (!msg) return;
+                        if (msg._msgId && msg._msgId === this.lastMsgId) return;
+                        if (msg._msgId) this.lastMsgId = msg._msgId;
+                        if (typeof this.onmessage === 'function') {
+                            this.onmessage({ data: msg });
+                        }
+                    });
+
+                    this.socket.on('disconnect', () => {
+                        console.log('[Socket.IO Host] Disconnected');
+                    });
+                } catch(e) {
+                    console.warn('Socket.IO error:', e);
+                }
+            }
+
+            postMessage(msg) {
+                if (!msg) return;
+                if (!msg.room && !msg.topic) {
+                    msg.room = this.channelName;
+                }
+                if (!msg._msgId) {
+                    msg._msgId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+                }
+                this.lastMsgId = msg._msgId;
+
+                if (this.bc) {
+                    try { this.bc.postMessage(msg); } catch(e){}
+                }
+                if (this.socket) {
+                    this.socket.emit('game_event', msg);
+                }
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('roomid');
+
+        if (!roomParam || !roomParam.trim()) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0d1117;color:#ff4d4d;font-size:24px;font-weight:bold;display:flex;justify-content:center;align-items:center;z-index:999999;text-align:center;padding:20px;';
+                overlay.innerText = 'Bổ sung tham số ?roomid=Mã phòng vào link.';
+                document.body.appendChild(overlay);
+            });
+        }
+
+        const channel = new GameSyncChannel(roomParam || 'gameshow_money_drop', SERVER_URL);
         let currentBets = { b1: 0, b2: 0, b3: 0, b4: 0 };
         let currentRound = 1;
 
+        let activeSfxAudio = null;
+        let timerAudio = new Audio("SFX/drop_timer.mp3");
+
+        function playSfxOnClient(filePath, loop = false, stopPrevious = true) {
+            if (stopPrevious && activeSfxAudio) {
+                try {
+                    activeSfxAudio.pause();
+                    activeSfxAudio.currentTime = 0;
+                } catch(e) {}
+            }
+            const audio = new Audio(filePath);
+            audio.loop = loop;
+            if (stopPrevious) {
+                activeSfxAudio = audio;
+            }
+            audio.play().catch(e => {
+                console.warn("Audio play blocked:", filePath, e);
+            });
+        }
+
+        function stopAllSfxOnClient() {
+            if (activeSfxAudio) {
+                try {
+                    activeSfxAudio.pause();
+                    activeSfxAudio.currentTime = 0;
+                } catch(e) {}
+                activeSfxAudio = null;
+            }
+            if (timerAudio) {
+                try {
+                    timerAudio.pause();
+                    timerAudio.currentTime = 0;
+                } catch(e) {}
+            }
+        }
+
         channel.onmessage = function(event) {
+            if (!event || !event.data) return;
             const { action, data } = event.data;
+
+            if (action === 'play_sfx') {
+                if (data && data.file) {
+                    playSfxOnClient(data.file, !!data.loop, data.stopPrevious !== false);
+                }
+            }
+            if (action === 'stop_sfx') {
+                stopAllSfxOnClient();
+            }
+            if (action === 'timer_control') {
+                if (data && data.status === 'start') {
+                    stopAllSfxOnClient();
+                    try {
+                        timerAudio.currentTime = 0;
+                        timerAudio.play().catch(e => {});
+                    } catch(e) {}
+                } else if (data && (data.status === 'stop' || data.status === 'timeout')) {
+                    if (timerAudio) {
+                        try {
+                            timerAudio.pause();
+                            timerAudio.currentTime = 0;
+                        } catch(e) {}
+                    }
+                }
+            }
 
             if (action === 'show_topics') {
                 document.getElementById('host-topic-A').innerText = data.topicA || "Chủ đề A";

@@ -4,7 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player - Money Drop</title>
-    <script src="network_sync.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
+                (e.ctrlKey && ['U','u','S','s'].includes(e.key))
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
     <style>
         @font-face {
             font-family: 'Myriad Pro';
@@ -160,146 +173,9 @@
         .money-stack img { width: 100%; height: 100%; object-fit: cover; border-radius: 3px; box-shadow: 0 4px 6px rgba(0,0,0,0.4); display: block; pointer-events: none; }
         
         .door .money-stack { width: 100%; height: 100%; cursor: pointer; pointer-events: none; }
-
-        /* PIN Lock Overlay Styles */
-        .pin-lock-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(10, 10, 15, 0.96);
-            backdrop-filter: blur(8px);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-
-        .pin-card {
-            background: #1c1e21;
-            border: 2px solid #ffcc00;
-            border-radius: 12px;
-            padding: 24px 20px;
-            max-width: 360px;
-            width: 100%;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 20px rgba(255,204,0,0.25);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .pin-icon { font-size: 38px; }
-        .pin-card h2 { color: #ffcc00; font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; }
-        .pin-card p { color: #cccccc; font-size: 13px; margin: 0; line-height: 1.4; }
-
-        .pin-display-box {
-            background: #000000;
-            border: 2px solid #4e4f50;
-            border-radius: 8px;
-            width: 200px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            font-weight: bold;
-            color: #00e676;
-            letter-spacing: 10px;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
-        }
-
-        .pin-error-msg {
-            color: #ff5252;
-            font-size: 13px;
-            font-weight: bold;
-            min-height: 18px;
-        }
-
-        .pin-keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            width: 220px;
-        }
-
-        .pin-keypad button {
-            height: 48px;
-            border-radius: 8px;
-            border: 1px solid #3a3b3c;
-            background: #2a2c2e;
-            color: #ffffff;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            user-select: none;
-        }
-        .pin-keypad button:active {
-            background: #ffcc00;
-            color: #000000;
-            transform: scale(0.95);
-        }
-        .pin-keypad button.keypad-func {
-            background: #3a3b3c;
-            color: #ffcc00;
-            font-size: 16px;
-        }
-
-        .pin-submit-btn {
-            width: 220px;
-            height: 44px;
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
-            border: none;
-            border-radius: 8px;
-            color: #ffffff;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            margin-top: 4px;
-            transition: all 0.15s ease;
-        }
-        .pin-submit-btn:active { transform: translateY(2px); }
     </style>
 </head>
 <body>
-
-    <!-- PIN Lock Overlay -->
-    <div id="pin-lock-overlay" class="pin-lock-overlay">
-        <div class="pin-card">
-            <div class="pin-icon">🔒</div>
-            <h2>BẢO MẬT PLAYER</h2>
-            <p>Nhập mã PIN 4 chữ số do MC cung cấp để vào giao diện chơi:</p>
-            
-            <div id="pin-status-notice" style="font-size: 12px; color: #00e676; background: rgba(0,230,118,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(0,230,118,0.3);">
-                🔄 Đang kết nối OnRender Server...
-            </div>
-
-            <div class="pin-display-box" id="pin-display"></div>
-            <div id="pin-error" class="pin-error-msg"></div>
-
-            <div class="pin-keypad">
-                <button onclick="keypadPress('1')">1</button>
-                <button onclick="keypadPress('2')">2</button>
-                <button onclick="keypadPress('3')">3</button>
-                <button onclick="keypadPress('4')">4</button>
-                <button onclick="keypadPress('5')">5</button>
-                <button onclick="keypadPress('6')">6</button>
-                <button onclick="keypadPress('7')">7</button>
-                <button onclick="keypadPress('8')">8</button>
-                <button onclick="keypadPress('9')">9</button>
-                <button onclick="keypadPress('C')" class="keypad-func">C</button>
-                <button onclick="keypadPress('0')">0</button>
-                <button onclick="keypadPress('DEL')" class="keypad-func">⌫</button>
-            </div>
-            <button class="pin-submit-btn" onclick="submitPin()">XÁC NHẬN VÀO GAME</button>
-
-            <div class="network-status-badge" style="font-size: 11px; color: #a0a0a0; margin-top: 4px;">
-                📡 Connecting to OnRender (ddtr-ace.onrender.com)...
-            </div>
-        </div>
-    </div>
 
     <div class="doors-container">
         <div class="door-wrapper" id="wrap-1">
@@ -353,6 +229,161 @@
     </div>
 
     <script>
+        const LOCAL_SERVER_URL = "http://localhost:3000";
+        const RENDER_SERVER_URL = "https://ddtr-ace.onrender.com";
+        const SERVER_URL = (typeof window !== 'undefined' && window.location.protocol.startsWith('http') && window.location.host) 
+            ? window.location.origin 
+            : RENDER_SERVER_URL;
+
+        class GameSyncChannel {
+            constructor(channelName = 'gameshow_money_drop', serverUrl = RENDER_SERVER_URL) {
+                this.channelName = channelName;
+                this.onmessage = null;
+                this.lastMsgId = null;
+
+                if (typeof window !== 'undefined' && window.BroadcastChannel) {
+                    try {
+                        this.bc = new BroadcastChannel(this.channelName);
+                        this.bc.onmessage = (event) => {
+                            if (!event || !event.data) return;
+                            if (event.data._msgId && event.data._msgId === this.lastMsgId) return;
+                            if (event.data._msgId) this.lastMsgId = event.data._msgId;
+                            if (typeof this.onmessage === 'function') {
+                                this.onmessage(event);
+                            }
+                        };
+                    } catch(e) {
+                        console.warn('BroadcastChannel error:', e);
+                    }
+                }
+
+                let targetUrl = (typeof window !== 'undefined' && window.location.protocol.startsWith('http') && window.location.host)
+                    ? window.location.origin 
+                    : RENDER_SERVER_URL;
+
+                if (serverUrl && serverUrl.startsWith('http')) {
+                    targetUrl = serverUrl;
+                }
+
+                try {
+                    this.socket = io(targetUrl, {
+                        transports: ['websocket', 'polling'],
+                        reconnection: true,
+                        reconnectionAttempts: Infinity,
+                        reconnectionDelay: 1000
+                    });
+
+                    this.socket.on('connect', () => {
+                        console.log('[Socket.IO Player] Connected to server:', this.socket.id);
+                        this.socket.emit('join_room', this.channelName);
+                        if (typeof this.onmessage === 'function') {
+                            this.onmessage({ data: { action: 'socket_connected', data: { id: this.socket.id } } });
+                        }
+                    });
+
+                    this.socket.on('game_event', (msg) => {
+                        if (!msg) return;
+                        if (msg._msgId && msg._msgId === this.lastMsgId) return;
+                        if (msg._msgId) this.lastMsgId = msg._msgId;
+                        if (typeof this.onmessage === 'function') {
+                            this.onmessage({ data: msg });
+                        }
+                    });
+
+                    this.socket.on('disconnect', () => {
+                        console.log('[Socket.IO Player] Disconnected');
+                    });
+                } catch(e) {
+                    console.warn('Socket.IO error:', e);
+                }
+            }
+
+            postMessage(msg) {
+                if (!msg) return;
+                if (!msg.room && !msg.topic) {
+                    msg.room = this.channelName;
+                }
+                if (!msg._msgId) {
+                    msg._msgId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+                }
+                this.lastMsgId = msg._msgId;
+
+                if (this.bc) {
+                    try { this.bc.postMessage(msg); } catch(e){}
+                }
+                if (this.socket) {
+                    this.socket.emit('game_event', msg);
+                }
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomIdParam = urlParams.get('roomid');
+        const authParam = urlParams.get('auth');
+
+        if (!roomIdParam || !authParam) {
+            window.location.href = 'Login.html';
+        } else {
+            const verifyTargets = [SERVER_URL, LOCAL_SERVER_URL, RENDER_SERVER_URL];
+            (async () => {
+                for (const target of [...new Set(verifyTargets)]) {
+                    try {
+                        const baseUrl = target.replace(/\/+$/, '');
+                        const res = await fetch(baseUrl + '/api/verify-room', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ roomid: roomIdParam, auth: authParam })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.valid === false) {
+                                window.location.href = 'Login.html';
+                            }
+                            break;
+                        }
+                    } catch(e) {}
+                }
+            })();
+        }
+
+        const channel = new GameSyncChannel(roomIdParam || 'gameshow_money_drop', SERVER_URL);
+
+        let activeSfxAudio = null;
+        let timerAudio = new Audio("SFX/drop_timer.mp3");
+
+        function playSfxOnClient(filePath, loop = false, stopPrevious = true) {
+            if (stopPrevious && activeSfxAudio) {
+                try {
+                    activeSfxAudio.pause();
+                    activeSfxAudio.currentTime = 0;
+                } catch(e) {}
+            }
+            const audio = new Audio(filePath);
+            audio.loop = loop;
+            if (stopPrevious) {
+                activeSfxAudio = audio;
+            }
+            audio.play().catch(e => {
+                console.warn("Audio play blocked:", filePath, e);
+            });
+        }
+
+        function stopAllSfxOnClient() {
+            if (activeSfxAudio) {
+                try {
+                    activeSfxAudio.pause();
+                    activeSfxAudio.currentTime = 0;
+                } catch(e) {}
+                activeSfxAudio = null;
+            }
+            if (timerAudio) {
+                try {
+                    timerAudio.pause();
+                    timerAudio.currentTime = 0;
+                } catch(e) {}
+            }
+        }
+
         const moneyBoard = document.getElementById('money-board');
         const tableDesk = document.getElementById('table-desk');
         const doors = document.querySelectorAll('.door');
@@ -360,107 +391,9 @@
 
         const VALUE_PER_STACK = 25000; 
         let selectedDoor = null; 
-        let isLock = true; 
+        let isLock = false; 
         let currentRound = 1;
-
-        let enteredPinDigits = "";
-        let currentPin = localStorage.getItem('game_pin') || '1234';
         const playerTabId = 'player_' + Math.random().toString(36).substring(2, 9);
-
-        const channel = new GameSyncChannel('gameshow_money_drop');
-
-        // --- PIN SECURITY & KEYPAD ---
-        function keypadPress(val) {
-            if (val === 'C') {
-                enteredPinDigits = "";
-            } else if (val === 'DEL') {
-                enteredPinDigits = enteredPinDigits.slice(0, -1);
-            } else {
-                if (enteredPinDigits.length < 4) {
-                    enteredPinDigits += val;
-                }
-            }
-            updatePinDisplay();
-            if (enteredPinDigits.length === 4) {
-                submitPin();
-            }
-        }
-
-        function updatePinDisplay() {
-            const display = document.getElementById('pin-display');
-            if (display) {
-                display.innerText = '•'.repeat(enteredPinDigits.length);
-            }
-        }
-
-        function submitPin() {
-            const errorEl = document.getElementById('pin-error');
-            if (enteredPinDigits === currentPin || localStorage.getItem('player_authenticated') === 'true') {
-                if (errorEl) errorEl.innerText = "";
-                localStorage.setItem('player_authenticated', 'true');
-                localStorage.setItem('player_auth_pin', currentPin);
-                unlockPlayerScreen();
-                channel.postMessage({
-                    action: 'player_authenticated',
-                    data: { pin: currentPin, senderId: playerTabId }
-                });
-                channel.postMessage({ action: 'request_player_state', senderId: playerTabId });
-            } else {
-                if (errorEl) errorEl.innerText = "❌ Mã PIN sai! Vui lòng thử lại.";
-                enteredPinDigits = "";
-                updatePinDisplay();
-            }
-        }
-
-        function unlockPlayerScreen() {
-            const overlay = document.getElementById('pin-lock-overlay');
-            if (overlay) overlay.style.display = 'none';
-        }
-
-        function lockPlayerScreen() {
-            if (localStorage.getItem('player_authenticated') === 'true') {
-                unlockPlayerScreen();
-                return;
-            }
-            const overlay = document.getElementById('pin-lock-overlay');
-            if (overlay) overlay.style.display = 'flex';
-            enteredPinDigits = "";
-            updatePinDisplay();
-        }
-
-        function checkInitialAuth() {
-            channel.postMessage({ action: 'request_pin' });
-            const isAuth = localStorage.getItem('player_authenticated') === 'true';
-            if (isAuth) {
-                unlockPlayerScreen();
-                channel.postMessage({ action: 'request_player_state', senderId: playerTabId });
-            } else {
-                const savedAuth = localStorage.getItem('player_auth_pin');
-                const storedPin = localStorage.getItem('game_pin') || '1234';
-                if (savedAuth && savedAuth === storedPin) {
-                    localStorage.setItem('player_authenticated', 'true');
-                    unlockPlayerScreen();
-                    channel.postMessage({ action: 'request_player_state', senderId: playerTabId });
-                } else {
-                    lockPlayerScreen();
-                }
-            }
-        }
-
-        document.addEventListener('keydown', (e) => {
-            const overlay = document.getElementById('pin-lock-overlay');
-            if (overlay && overlay.style.display !== 'none') {
-                if (e.key >= '0' && e.key <= '9') {
-                    keypadPress(e.key);
-                } else if (e.key === 'Backspace') {
-                    keypadPress('DEL');
-                } else if (e.key === 'Enter') {
-                    submitPin();
-                } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
-                    keypadPress('C');
-                }
-            }
-        });
 
         // --- MONEY STACK CREATION ---
         function createMoneyStackElement(stackId) {
@@ -472,7 +405,6 @@
             img.src = '50$A.png'; 
             img.alt = '50 $A';
             img.onerror = () => {
-                // Fallback graphic if image is missing
                 img.style.display = 'none';
                 moneyStack.style.background = 'linear-gradient(135deg, #f1c40f, #f39c12)';
                 moneyStack.style.border = '1px solid #d35400';
@@ -722,41 +654,40 @@
         document.body.addEventListener('click', () => { if (selectedDoor) { selectedDoor.classList.remove('selected'); selectedDoor = null; } });
 
         channel.onmessage = function(event) {
+            if (!event || !event.data) return;
             const { action, data } = event.data;
 
             switch(action) {
+                case 'play_sfx':
+                    if (data && data.file) {
+                        playSfxOnClient(data.file, !!data.loop, data.stopPrevious !== false);
+                    }
+                    break;
+
+                case 'stop_sfx':
+                    stopAllSfxOnClient();
+                    break;
+
+                case 'timer_control':
+                    if (data && data.status === 'start') {
+                        stopAllSfxOnClient();
+                        try {
+                            timerAudio.currentTime = 0;
+                            timerAudio.play().catch(e => {});
+                        } catch(e) {}
+                    } else if (data && (data.status === 'stop' || data.status === 'timeout')) {
+                        if (timerAudio) {
+                            try {
+                                timerAudio.pause();
+                                timerAudio.currentTime = 0;
+                            } catch(e) {}
+                        }
+                    }
+                    break;
+
                 case 'socket_connected':
                 case 'mqtt_connected':
-                    channel.postMessage({ action: 'request_pin' });
                     channel.postMessage({ action: 'request_player_state', senderId: playerTabId });
-                    break;
-
-                case 'update_pin':
-                    if (data && data.pin) {
-                        currentPin = data.pin;
-                        localStorage.setItem('game_pin', currentPin);
-                        
-                        const pinNotice = document.getElementById('pin-status-notice');
-                        if (pinNotice) {
-                            pinNotice.innerText = `🟢 Kết nối Server OnRender - PIN: ${currentPin}`;
-                            pinNotice.style.color = '#00e676';
-                            pinNotice.style.borderColor = 'rgba(0,230,118,0.3)';
-                        }
-
-                        if (localStorage.getItem('player_authenticated') === 'true' && !data.forceLock) {
-                            unlockPlayerScreen();
-                        } else if (data.forceLock || localStorage.getItem('player_auth_pin') !== currentPin) {
-                            localStorage.removeItem('player_auth_pin');
-                            lockPlayerScreen();
-                        }
-                    }
-                    break;
-
-                case 'player_authenticated':
-                    if (data.pin === currentPin) {
-                        localStorage.setItem('player_auth_pin', data.pin);
-                        unlockPlayerScreen();
-                    }
                     break;
 
                 case 'request_player_state':

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Money Drop</title>
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
+                (e.ctrlKey && ['U','u','S','s'].includes(e.key))
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-weight: bold !important;
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0f1115;
+            background-image: radial-gradient(circle at center, #1b2838 0%, #0a0c10 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: rgba(22, 28, 38, 0.95);
+            border: 2px solid #27ae60;
+            border-radius: 16px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(39, 174, 96, 0.2);
+            text-align: center;
+        }
+
+        .logo-title {
+            font-size: 26px;
+            color: #f1c40f;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+            font-weight: bold !important;
+        }
+
+        .sub-title {
+            font-size: 14px;
+            color: #2ecc71;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold !important;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #e0e0e0;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold !important;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-align: center;
+            outline: none;
+            transition: all 0.25s ease;
+            font-weight: bold !important;
+        }
+
+        input:focus {
+            border-color: #2ecc71;
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+            background: #11161d;
+        }
+
+        input::placeholder {
+            color: #6e7681;
+            font-weight: bold !important;
+            font-size: 14px;
+            letter-spacing: 0;
+        }
+
+        .btn-confirm {
+            width: 100%;
+            padding: 16px;
+            background: #2ecc71;
+            color: #ffffff !important;
+            font-size: 18px;
+            font-weight: bold !important;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-confirm:hover {
+            background: #ffa500 !important;
+            color: #ffffff !important;
+            box-shadow: 0 6px 16px rgba(255, 165, 0, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-confirm:active {
+            transform: translateY(1px);
+        }
+
+        #error-msg {
+            margin-top: 16px;
+            font-size: 14px;
+            color: #e74c3c;
+            min-height: 20px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            font-weight: bold !important;
+        }
+
+        .server-links {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #30363d;
+            font-size: 13px;
+            color: #8b949e;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+            font-weight: bold !important;
+        }
+
+        .server-links div {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .server-links a {
+            color: #3498db;
+            text-decoration: none;
+            word-break: break-all;
+            font-weight: bold !important;
+        }
+
+        .server-links a:hover {
+            text-decoration: underline;
+            color: #5dade2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="logo-title">🎮 MONEY DROP</div>
+        <div class="sub-title">ĐĂNG NHẬP PHÒNG CHƠI PLAYER</div>
+
+        <form id="login-form" onsubmit="event.preventDefault(); handleLogin();">
+            <div class="form-group">
+                <label for="room-input">🏠 MÃ PHÒNG CHƠI (6 CHỮ SỐ):</label>
+                <input type="text" id="room-input" maxlength="6" placeholder="VD: 123456" autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="pass-input">🔑 MẬT KHẨU (4 CHỮ SỐ):</label>
+                <input type="password" id="pass-input" maxlength="4" placeholder="VD: 1234" autocomplete="off">
+            </div>
+
+            <button type="submit" class="btn-confirm" id="btn-submit">XÁC NHẬN VÀO PHÒNG</button>
+        </form>
+
+        <div id="error-msg"></div>
+    </div>
+
+    <script>
+        const LOCAL_SERVER_URL = "http://localhost:3000";
+        const RENDER_SERVER_URL = "https://ddtr-ace.onrender.com";
+        const SERVER_URL = (typeof window !== 'undefined' && window.location.protocol.startsWith('http') && window.location.host) 
+            ? window.location.origin 
+            : RENDER_SERVER_URL;
+
+        async function verifyRoomApi(roomVal, passVal) {
+            const targets = [SERVER_URL, LOCAL_SERVER_URL, RENDER_SERVER_URL];
+            const uniqueTargets = [...new Set(targets)];
+
+            for (const target of uniqueTargets) {
+                try {
+                    const baseUrl = target.replace(/\/+$/, '');
+                    const res = await fetch(baseUrl + '/api/verify-room', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roomid: roomVal, auth: passVal })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        return data;
+                    }
+                } catch (e) {
+                    console.warn('Verify fetch failed for:', target, e);
+                }
+            }
+            // Fallback if network/offline mode: allow room login if formatted correctly
+            return { valid: true, roomid: roomVal };
+        }
+
+        async function handleLogin() {
+            const roomInput = document.getElementById('room-input');
+            const passInput = document.getElementById('pass-input');
+            const errorMsg = document.getElementById('error-msg');
+            const btnSubmit = document.getElementById('btn-submit');
+
+            const roomVal = roomInput.value.trim();
+            const passVal = passInput.value.trim();
+
+            errorMsg.innerText = '';
+
+            if (!roomVal || !/^\d{6}$/.test(roomVal)) {
+                errorMsg.innerText = '❌ Mã phòng phải bao gồm đúng 6 chữ số!';
+                return;
+            }
+
+            if (!passVal || !/^\d{4}$/.test(passVal)) {
+                errorMsg.innerText = '❌ Mật khẩu phải bao gồm đúng 4 chữ số!';
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = 'ĐANG XÁC THỰC...';
+
+            try {
+                const data = await verifyRoomApi(roomVal, passVal);
+
+                if (data && data.valid) {
+                    window.location.href = `Player.html?roomid=${encodeURIComponent(roomVal)}&auth=${encodeURIComponent(passVal)}`;
+                } else {
+                    errorMsg.innerText = '❌ ' + (data.message || 'Mã phòng hoặc mật khẩu không đúng!');
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerText = 'XÁC NHẬN VÀO PHÒNG';
+                }
+            } catch (err) {
+                errorMsg.innerText = '❌ Không thể kết nối máy chủ. Vui lòng thử lại!';
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = 'XÁC NHẬN VÀO PHÒNG';
+            }
+        }
+    </script>
+</body>
+</html>
